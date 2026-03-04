@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import JobListPage from '../components/JobListPage';
+import { defaultConfig } from '../config';
+---
+
+<Layout
+  title={`Jobs at ${defaultConfig.companyName}`}
+  description={`Browse open positions at ${defaultConfig.companyName}. Find your next career opportunity today.`}
+>
+  <JobListPage client:load />
+</Layout>

@@ -1,0 +1,59 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import JobDetailView from '../../components/JobDetailView';
+import { DEMO_JOBS } from '../../demo-data';
+import { defaultConfig } from '../../config';
+
+export function getStaticPaths() {
+  return DEMO_JOBS.map(job => ({
+    params: { id: String(job.id) },
+    props: { job },
+  }));
+}
+
+const { job } = Astro.props;
+const title = `${job.title} | ${defaultConfig.companyName} Careers`;
+const description = `${job.employmentType} position in ${job.address.state === 'Remote' ? 'Remote' : `${job.address.city}, ${job.address.state}`}${job.salary ? `. Salary: ${job.salary}` : ''}.`;
+
+const jsonLd = {
+  "@context": "https://schema.org/",
+  "@type": "JobPosting",
+  "title": job.title,
+  "description": job.publicDescription,
+  "datePosted": new Date(job.dateLastPublished).toISOString().split('T')[0],
+  "employmentType": job.employmentType,
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": defaultConfig.companyName,
+    "sameAs": defaultConfig.companyUrl,
+  },
+  "jobLocation": job.address.state === 'Remote'
+    ? { "@type": "Place", "address": { "@type": "PostalAddress", "addressCountry": "US" }, "name": "Remote" }
+    : {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": job.address.city,
+          "addressRegion": job.address.state,
+          "addressCountry": job.address.country || "US",
+        },
+      },
+  ...(job.salary
+    ? {
+        "baseSalary": {
+          "@type": "MonetaryAmount",
+          "currency": "USD",
+          "value": {
+            "@type": "QuantitativeValue",
+            "value": job.salary,
+          },
+        },
+      }
+    : {}),
+};
+---
+
+<Layout title={title} description={description}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <JobDetailView job={job} client:load />
+</Layout>

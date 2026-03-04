@@ -1,0 +1,62 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { defaultConfig } from '../config';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  embed?: boolean;
+  ogImage?: string;
+  noIndex?: boolean;
+}
+
+const {
+  title = defaultConfig.companyName + ' Careers',
+  description = 'Browse open positions at ' + defaultConfig.companyName,
+  embed = false,
+  ogImage,
+  noIndex = false,
+} = Astro.props;
+
+const isEmbed = embed || Astro.url.searchParams.get('embed') === 'true';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  {noIndex && <meta name="robots" content="noindex,nofollow" />}
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  {ogImage && <meta property="og:image" content={ogImage} />}
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style define:vars={{ primaryColor: defaultConfig.primaryColor, accentColor: defaultConfig.accentColor }}>
+    :root {
+      --color-primary: var(--primaryColor);
+      --color-accent: var(--accentColor);
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+  </style>
+</head>
+<body class={isEmbed ? 'bg-transparent' : 'bg-gray-50 min-h-screen flex flex-col'}>
+  {!isEmbed && <Header />}
+  <main class={isEmbed ? '' : 'flex-1 max-w-6xl w-full mx-auto px-4 py-8'}>
+    <slot />
+  </main>
+  {!isEmbed && <Footer />}
+</body>
+</html>
