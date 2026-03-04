@@ -26,7 +26,7 @@ export const defaultConfig: PortalConfig = {
   companyUrl: 'https://tonichq.com',
   primaryColor: '#2563EB',
   accentColor: '#10B981',
-  fontFamily: 'Inter, system-ui, sans-serif',
+  fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif',
   darkMode: false,
   service: {
     swimlane: '91',
