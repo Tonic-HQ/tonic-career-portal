@@ -58,5 +58,29 @@ const isEmbed = embed || Astro.url.searchParams.get('embed') === 'true';
     <slot />
   </main>
   {!isEmbed && <Footer />}
+  <script>
+    // Listen for real-time config updates from the Admin panel (postMessage)
+    window.addEventListener('message', (event) => {
+      if (!event.data || event.data.type !== 'TONIC_CONFIG_UPDATE') return;
+      const cfg = event.data.config;
+      if (!cfg) return;
+      const root = document.documentElement;
+      if (cfg.primaryColor) root.style.setProperty('--color-primary', cfg.primaryColor);
+      if (cfg.accentColor) root.style.setProperty('--color-accent', cfg.accentColor);
+      if (cfg.backgroundColor) document.body.style.backgroundColor = cfg.backgroundColor;
+      if (cfg.textColor) root.style.setProperty('--color-text', cfg.textColor);
+      if (cfg.primaryFont && cfg.primaryFont !== 'Same as primary') {
+        document.body.style.fontFamily = `'${cfg.primaryFont}', system-ui, sans-serif`;
+        const fontId = `gfont-${cfg.primaryFont.replace(/\s/g, '-')}`;
+        if (!document.getElementById(fontId)) {
+          const link = document.createElement('link');
+          link.id = fontId;
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cfg.primaryFont)}:wght@300;400;500;600;700&display=swap`;
+          document.head.appendChild(link);
+        }
+      }
+    });
+  </script>
 </body>
 </html>
