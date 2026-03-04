@@ -4,10 +4,38 @@ import JobDetailView from '../../components/JobDetailView';
 import { DEMO_JOBS } from '../../demo-data';
 import { defaultConfig } from '../../config';
 
-export function getStaticPaths() {
-  return DEMO_JOBS.map(job => ({
+export async function getStaticPaths() {
+  const config = defaultConfig;
+
+  if (config.service.corpToken === 'demo') {
+    return DEMO_JOBS.map(job => ({
+      params: { id: String(job.id) },
+      props: { job },
+    }));
+  }
+
+  // Fetch all open jobs from Bullhorn
+  const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
+  const url = `${base}/search/JobOrder?query=(isOpen:1)%20AND%20(isDeleted:0)&fields=${config.service.fields}&count=500&sort=-dateLastPublished&showTotalMatched=true`;
+  const res = await fetch(url);
+  const data = await res.json() as { data?: any[] };
+  const jobs = data.data ?? [];
+
+  return jobs.map((job: any) => ({
     params: { id: String(job.id) },
-    props: { job },
+    props: {
+      job: {
+        ...job,
+        address: {
+          city: job.address?.city ?? '',
+          state: job.address?.state ?? '',
+          country: job.address?.countryName ?? 'US',
+        },
+        publishedCategory: job.publishedCategory ?? { id: 0, name: 'General' },
+        salary: job.salary ? (job.salaryUnit ? `$${job.salary}/${job.salaryUnit}` : `$${job.salary.toLocaleString()}`) : '',
+        benefits: '',
+      },
+    },
   }));
 }
 

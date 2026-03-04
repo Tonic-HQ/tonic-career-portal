@@ -21,7 +21,7 @@ export interface PortalConfig {
 }
 
 export const defaultConfig: PortalConfig = {
-  companyName: 'Tonic Staffing',
+  companyName: 'Tonic HQ',
   companyLogoUrl: '',
   companyUrl: 'https://tonichq.com',
   primaryColor: '#2563EB',
@@ -29,9 +29,9 @@ export const defaultConfig: PortalConfig = {
   fontFamily: 'Inter, system-ui, sans-serif',
   darkMode: false,
   service: {
-    swimlane: '1',
-    corpToken: 'demo',
-    fields: 'id,title,publishedCategory,address,employmentType,salary,dateLastPublished,publicDescription,benefits',
+    swimlane: '91',
+    corpToken: '3apw29',
+    fields: 'id,title,publishedCategory(id,name),address(city,state,countryName),employmentType,salary,salaryUnit,dateLastPublished,publicDescription,isOpen,isPublic,isDeleted',
   },
   applyForm: {
     mode: 'quick',

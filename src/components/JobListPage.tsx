@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { searchJobs } from '../api';
 import type { Job } from '../demo-data';
-import { DEMO_JOBS } from '../demo-data';
+import { getAllJobs } from '../api';
 
 function formatRelativeDate(timestamp: number): string {
   const now = Date.now();
@@ -90,10 +90,7 @@ function LoadingCard() {
   );
 }
 
-// Derive unique filter options from demo data
-const ALL_CATEGORIES = [...new Set(DEMO_JOBS.map(j => j.publishedCategory.name))].sort();
-const ALL_STATES = [...new Set(DEMO_JOBS.map(j => j.address.state))].sort();
-const ALL_TYPES = [...new Set(DEMO_JOBS.map(j => j.employmentType))].sort();
+// Filter options will be derived from actual job data
 
 const PAGE_SIZE = 9;
 
@@ -103,6 +100,9 @@ export default function JobListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [allStates, setAllStates] = useState<string[]>([]);
+  const [allTypes, setAllTypes] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [state, setState] = useState('');
@@ -143,9 +143,14 @@ export default function JobListPage() {
     }
   }, []);
 
-  // On mount
+  // On mount — fetch jobs + derive filter options
   useEffect(() => {
     fetchJobs({ query, category, state, employmentType, sort, page });
+    getAllJobs().then(allJobs => {
+      setAllCategories([...new Set(allJobs.map(j => j.publishedCategory?.name).filter(Boolean))].sort());
+      setAllStates([...new Set(allJobs.map(j => j.address?.state).filter(Boolean))].sort());
+      setAllTypes([...new Set(allJobs.map(j => j.employmentType).filter(Boolean))].sort());
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // On filter/sort/page change (except query which is debounced)
@@ -202,7 +207,7 @@ export default function JobListPage() {
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Open Positions</h1>
-        <p className="text-gray-500">Find your next opportunity with Tonic Staffing</p>
+        <p className="text-gray-500">Find your next opportunity</p>
       </div>
 
       {/* Search bar */}
@@ -246,7 +251,7 @@ export default function JobListPage() {
           aria-label="Filter by category"
         >
           <option value="">All Categories</option>
-          {ALL_CATEGORIES.map(c => (
+          {allCategories.map(c => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
@@ -258,7 +263,7 @@ export default function JobListPage() {
           aria-label="Filter by location"
         >
           <option value="">All Locations</option>
-          {ALL_STATES.map(s => (
+          {allStates.map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
@@ -270,7 +275,7 @@ export default function JobListPage() {
           aria-label="Filter by employment type"
         >
           <option value="">All Types</option>
-          {ALL_TYPES.map(t => (
+          {allTypes.map(t => (
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
