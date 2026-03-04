@@ -21,9 +21,20 @@ function formatDate(timestamp: number): string {
 const BADGE_COLORS: Record<string, string> = {
   'Full-Time': 'bg-blue-50 text-blue-700 border-blue-100',
   'Part-Time': 'bg-amber-50 text-amber-700 border-amber-100',
-  'Contract': 'bg-purple-50 text-purple-700 border-purple-100',
-  'Temp': 'bg-gray-100 text-gray-700 border-gray-200',
+  'Contract': 'bg-violet-50 text-violet-700 border-violet-100',
+  'Temp': 'bg-slate-100 text-slate-600 border-slate-200',
 };
+
+const BENEFIT_COLORS = [
+  'bg-blue-50 text-blue-700 border-blue-100',
+  'bg-violet-50 text-violet-700 border-violet-100',
+  'bg-emerald-50 text-emerald-700 border-emerald-100',
+  'bg-amber-50 text-amber-700 border-amber-100',
+  'bg-rose-50 text-rose-700 border-rose-100',
+  'bg-cyan-50 text-cyan-700 border-cyan-100',
+  'bg-indigo-50 text-indigo-700 border-indigo-100',
+  'bg-teal-50 text-teal-700 border-teal-100',
+];
 
 export default function JobDetailView({ job }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,7 +47,6 @@ export default function JobDetailView({ job }: Props) {
     }
   }, [job.id]);
 
-  // Re-check after modal closes in case user just applied
   function handleModalClose() {
     setIsModalOpen(false);
     if (typeof localStorage !== 'undefined') {
@@ -65,18 +75,18 @@ export default function JobDetailView({ job }: Props) {
     ? 'Remote'
     : `${job.address.city}, ${job.address.state}`;
 
-  const badgeClass = BADGE_COLORS[job.employmentType] ?? 'bg-gray-100 text-gray-700 border-gray-200';
+  const badgeClass = BADGE_COLORS[job.employmentType] ?? 'bg-slate-100 text-slate-600 border-slate-200';
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   const shareTitle = encodeURIComponent(`${job.title} at ${job.address.city}`);
 
   return (
     <>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back navigation */}
         <button
           onClick={handleBack}
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-6 group"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-700 transition-colors mb-7 group"
         >
           <svg
             className="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
@@ -92,63 +102,69 @@ export default function JobDetailView({ job }: Props) {
 
         {/* Already applied banner */}
         {alreadyApplied && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3">
+            <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div>
-              <p className="font-medium text-green-800 text-sm">You've already applied to this position</p>
-              <p className="text-green-600 text-xs mt-0.5">We'll review your application and be in touch soon.</p>
+              <p className="font-semibold text-emerald-800 text-sm">You've already applied to this position</p>
+              <p className="text-emerald-600 text-xs mt-0.5 font-light">We'll review your application and be in touch soon.</p>
             </div>
           </div>
         )}
 
-        {/* Job header card */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+        {/* Job header card — subtle gradient tint */}
+        <div
+          className="rounded-2xl border border-blue-100/80 shadow-sm p-8 mb-5 overflow-hidden relative"
+          style={{ background: 'linear-gradient(135deg, rgba(239,246,255,0.8) 0%, rgba(255,255,255,1) 60%)' }}
+        >
+          {/* Subtle decorative circle */}
+          <div
+            className="absolute -right-12 -top-12 w-48 h-48 rounded-full opacity-[0.04]"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          />
+
+          <div className="relative flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
             <div className="flex-1 min-w-0">
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-4">
-                {job.title}
-              </h1>
+              <div className="mb-4">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${badgeClass} mb-3`}>
+                  {job.employmentType}
+                </span>
+                <h1 className="text-3xl font-bold text-gray-900 leading-tight tracking-tight">
+                  {job.title}
+                </h1>
+              </div>
 
               {/* Meta row */}
-              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-primary)', opacity: 0.7 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   {locationStr}
                 </span>
-                <span className="text-gray-200">|</span>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeClass}`}
-                >
-                  {job.employmentType}
-                </span>
-                <span className="text-gray-200">|</span>
+
                 <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-primary)', opacity: 0.7 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                   {job.publishedCategory.name}
                 </span>
+
                 {job.salary && (
-                  <>
-                    <span className="text-gray-200">|</span>
-                    <span className="flex items-center gap-1.5 font-medium text-gray-700">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {job.salary}
-                    </span>
-                  </>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold bg-emerald-500 text-white shadow-sm shadow-emerald-200">
+                    <svg className="w-3.5 h-3.5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {job.salary}
+                  </span>
                 )}
-                <span className="text-gray-200">|</span>
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+
+                <span className="flex items-center gap-1.5 text-gray-400 text-xs">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   Posted {formatDate(job.dateLastPublished)}
@@ -160,8 +176,11 @@ export default function JobDetailView({ job }: Props) {
             <div className="flex-shrink-0">
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm"
-                style={{ backgroundColor: 'var(--color-primary)' }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg"
+                style={{
+                  backgroundColor: 'var(--color-primary)',
+                  boxShadow: '0 4px 14px -2px rgba(37,99,235,0.35)',
+                }}
               >
                 Apply Now
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -173,21 +192,33 @@ export default function JobDetailView({ job }: Props) {
         </div>
 
         {/* Job description */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-5">Job Description</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-5">
+          <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+            <span
+              className="w-1 h-5 rounded-full inline-block"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            />
+            Job Description
+          </h2>
           <div
-            className="prose prose-gray max-w-none text-gray-600 leading-relaxed [&>p]:mb-4 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ul]:mb-4 [&>ul>li]:mb-1 [&>h3]:font-semibold [&>h3]:text-gray-900 [&>h3]:mt-6 [&>h3]:mb-3"
+            className="text-gray-600 leading-[1.8] max-w-prose [&>p]:mb-4 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ul]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-gray-600 [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-7 [&>h3]:mb-3 [&>h3]:text-base [&>h2]:font-bold [&>h2]:text-gray-900 [&>h2]:mt-7 [&>h2]:mb-3 [&>strong]:text-gray-800 [&>strong]:font-semibold"
             dangerouslySetInnerHTML={{ __html: job.publicDescription }}
           />
 
           {job.benefits && (
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Benefits</h3>
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-[0.1em] flex items-center gap-2">
+                <span
+                  className="w-1 h-3.5 rounded-full inline-block"
+                  style={{ backgroundColor: 'var(--color-accent)' }}
+                />
+                Benefits &amp; Perks
+              </h3>
               <div className="flex flex-wrap gap-2">
-                {job.benefits.split(',').map(benefit => (
+                {job.benefits.split(',').map((benefit, i) => (
                   <span
                     key={benefit.trim()}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100"
+                    className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border ${BENEFIT_COLORS[i % BENEFIT_COLORS.length]}`}
                   >
                     {benefit.trim()}
                   </span>
@@ -197,20 +228,19 @@ export default function JobDetailView({ job }: Props) {
           )}
         </div>
 
-        {/* Share + secondary CTA */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+        {/* Share section */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Share this job</h3>
-              <p className="text-xs text-gray-400">Help someone find their next opportunity</p>
+              <h3 className="text-sm font-semibold text-gray-900">Share this opportunity</h3>
+              <p className="text-xs text-gray-400 font-light mt-0.5">Help someone find their next role</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* LinkedIn */}
               <a
                 href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareUrl)}&title=${shareTitle}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
                 aria-label="Share on LinkedIn"
               >
                 <svg className="w-4 h-4 text-[#0A66C2]" fill="currentColor" viewBox="0 0 24 24">
@@ -219,12 +249,11 @@ export default function JobDetailView({ job }: Props) {
                 LinkedIn
               </a>
 
-              {/* Twitter/X */}
               <a
                 href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${encodeURIComponent(shareUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
                 aria-label="Share on X (Twitter)"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -233,12 +262,11 @@ export default function JobDetailView({ job }: Props) {
                 Share
               </a>
 
-              {/* Facebook */}
               <a
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
                 aria-label="Share on Facebook"
               >
                 <svg className="w-4 h-4 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
@@ -247,15 +275,14 @@ export default function JobDetailView({ job }: Props) {
                 Facebook
               </a>
 
-              {/* Copy link */}
               <button
                 onClick={handleCopyLink}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
                 aria-label="Copy link to job"
               >
                 {linkCopied ? (
                   <>
-                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                     Copied!
@@ -273,18 +300,37 @@ export default function JobDetailView({ job }: Props) {
           </div>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-8 text-center" style={{ background: 'linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, #1e3a8a))' }}>
-          <h3 className="text-xl font-semibold text-white mb-2">Ready to apply?</h3>
-          <p className="text-blue-100 text-sm mb-5">
-            Join the team as a {job.title} in {locationStr}.
-          </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 font-semibold px-8 py-3 rounded-lg hover:bg-blue-50 active:scale-[0.98] transition-all shadow-sm"
-          >
-            Apply Now
-          </button>
+        {/* Bottom CTA — full-width gradient banner */}
+        <div
+          className="rounded-2xl p-10 text-center overflow-hidden relative"
+          style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, #1d4ed8 60%, #1e3a8a 100%)' }}
+        >
+          {/* Decorative circles */}
+          <div className="absolute -left-8 -bottom-8 w-40 h-40 rounded-full bg-white opacity-[0.04]" />
+          <div className="absolute -right-8 -top-8 w-52 h-52 rounded-full bg-white opacity-[0.04]" />
+
+          <div className="relative">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white/80 text-xs font-medium mb-4">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              {job.publishedCategory.name}
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Ready to join the team?</h3>
+            <p className="text-blue-200 text-sm mb-7 font-light max-w-sm mx-auto leading-relaxed">
+              We're looking for a {job.title} to work with us {job.address.state === 'Remote' ? 'remotely' : `in ${locationStr}`}.
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 bg-white font-semibold px-8 py-3.5 rounded-xl hover:bg-blue-50 active:scale-[0.98] transition-all shadow-lg shadow-blue-900/25 text-sm"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              Apply Now
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

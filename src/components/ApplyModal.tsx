@@ -21,12 +21,10 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
       setStatus('idle');
       setErrorMessage('');
       setPrivacyChecked(false);
-      // Focus first input after modal opens
       setTimeout(() => firstInputRef.current?.focus(), 100);
     }
   }, [isOpen]);
 
-  // Trap focus and handle Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -50,7 +48,6 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // Simple validation
     const firstName = (formData.get('firstName') as string).trim();
     const lastName = (formData.get('lastName') as string).trim();
     const email = (formData.get('email') as string).trim();
@@ -70,7 +67,6 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
 
     try {
       await submitApplication(jobId, formData);
-      // Save to localStorage to track "already applied"
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(`applied_${jobId}`, 'true');
       }
@@ -84,6 +80,9 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
   const requirePrivacy = Boolean(config.privacyPolicyUrl);
   const canSubmit = status !== 'submitting' && (!requirePrivacy || privacyChecked);
 
+  const inputClass = "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-400 bg-white placeholder:text-gray-400 transition-all";
+  const inputFocusStyle = "0 0 0 3px rgba(37,99,235,0.1), 0 1px 3px rgba(0,0,0,0.05)";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -91,26 +90,29 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      {/* Backdrop */}
+      {/* Backdrop — backdrop blur */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden">
+      {/* Modal — scale-in entrance */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden animate-scale-in">
+        {/* Header accent bar */}
+        <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, var(--color-primary) 0%, #7c3aed 100%)' }} />
+
         {/* Header */}
-        <div className="flex items-start justify-between p-6 pb-4 border-b border-gray-100">
+        <div className="flex items-start justify-between px-6 pt-5 pb-4">
           <div>
-            <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
+            <h2 id="modal-title" className="text-xl font-bold text-gray-900 tracking-tight">
               Apply Now
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{jobTitle}</p>
+            <p className="text-sm text-gray-400 font-light mt-0.5 line-clamp-1">{jobTitle}</p>
           </div>
           <button
             onClick={onClose}
-            className="ml-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors flex-shrink-0"
+            className="ml-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl p-1.5 transition-all flex-shrink-0"
             aria-label="Close modal"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -119,42 +121,48 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
           </button>
         </div>
 
+        <div className="h-px bg-gray-100 mx-6" />
+
         {/* Content */}
         <div className="p-6">
           {status === 'success' ? (
             <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {/* Animated success icon */}
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 animate-success-pop"
+                style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 8px 24px -4px rgba(16,185,129,0.4)' }}
+              >
+                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Application Submitted!</h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Thank you for applying. We'll review your application and be in touch soon.
+              <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight">Application Submitted!</h3>
+              <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-xs mx-auto font-light">
+                Thank you for applying. We'll review your application and reach out soon.
               </p>
               <button
                 onClick={onClose}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl text-sm font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-colors"
               >
-                Close
+                Done
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} noValidate>
               {status === 'error' && errorMessage && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 animate-fade-up">
                   <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm text-red-700">{errorMessage}</p>
+                  <p className="text-sm text-red-700 font-medium">{errorMessage}</p>
                 </div>
               )}
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name <span className="text-red-500">*</span>
+                    <label htmlFor="firstName" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                      First Name <span className="text-red-400 normal-case tracking-normal font-normal">*</span>
                     </label>
                     <input
                       ref={firstInputRef}
@@ -163,13 +171,15 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                       name="firstName"
                       required
                       autoComplete="given-name"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
+                      className={inputClass}
                       placeholder="Jane"
+                      onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </div>
                   <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name <span className="text-red-500">*</span>
+                    <label htmlFor="lastName" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                      Last Name <span className="text-red-400 normal-case tracking-normal font-normal">*</span>
                     </label>
                     <input
                       type="text"
@@ -177,15 +187,17 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                       name="lastName"
                       required
                       autoComplete="family-name"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
+                      className={inputClass}
                       placeholder="Smith"
+                      onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address <span className="text-red-500">*</span>
+                  <label htmlFor="email" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    Email Address <span className="text-red-400 normal-case tracking-normal font-normal">*</span>
                   </label>
                   <input
                     type="email"
@@ -193,14 +205,16 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                     name="email"
                     required
                     autoComplete="email"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
+                    className={inputClass}
                     placeholder="jane@example.com"
+                    onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                    onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                   />
                 </div>
 
                 {config.applyForm.showPhone && (
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="phone" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
                       Phone Number
                     </label>
                     <input
@@ -208,16 +222,18 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                       id="phone"
                       name="phone"
                       autoComplete="tel"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
+                      className={inputClass}
                       placeholder="(555) 555-5555"
+                      onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </div>
                 )}
 
                 {config.applyForm.mode === 'full' && (
                   <div>
-                    <label htmlFor="resume" className="block text-sm font-medium text-gray-700 mb-1">
-                      Resume {config.applyForm.resumeRequired && <span className="text-red-500">*</span>}
+                    <label htmlFor="resume" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                      Resume {config.applyForm.resumeRequired && <span className="text-red-400 normal-case tracking-normal font-normal">*</span>}
                     </label>
                     <input
                       type="file"
@@ -225,28 +241,31 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                       name="resume"
                       accept=".pdf,.doc,.docx,.txt"
                       required={config.applyForm.resumeRequired}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-400 bg-white file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:text-white transition-all cursor-pointer"
+                      style={{ '--file-bg': 'var(--color-primary)' } as React.CSSProperties}
                     />
-                    <p className="mt-1 text-xs text-gray-400">PDF, Word, or plain text accepted</p>
+                    <p className="mt-1.5 text-xs text-gray-400 font-light">PDF, Word, or plain text accepted</p>
                   </div>
                 )}
 
                 {requirePrivacy && (
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                     <input
                       type="checkbox"
                       id="privacy"
                       checked={privacyChecked}
                       onChange={e => setPrivacyChecked(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 cursor-pointer"
+                      style={{ accentColor: 'var(--color-primary)' }}
                     />
-                    <label htmlFor="privacy" className="text-sm text-gray-600">
+                    <label htmlFor="privacy" className="text-sm text-gray-600 font-light cursor-pointer">
                       I have read and agree to the{' '}
                       <a
                         href={config.privacyPolicyUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="font-medium hover:underline"
+                        style={{ color: 'var(--color-primary)' }}
                       >
                         Privacy Policy
                       </a>
@@ -258,8 +277,13 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="mt-6 w-full bg-blue-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                style={{ backgroundColor: canSubmit ? 'var(--color-primary)' : undefined }}
+                className="mt-5 w-full text-white font-semibold px-6 py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-sm"
+                style={{
+                  backgroundColor: 'var(--color-primary)',
+                  boxShadow: canSubmit ? '0 4px 14px -2px rgba(37,99,235,0.35)' : 'none',
+                }}
+                onMouseEnter={e => { if (canSubmit) e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
               >
                 {status === 'submitting' ? (
                   <>
@@ -274,7 +298,10 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                 )}
               </button>
 
-              <p className="mt-3 text-xs text-gray-400 text-center">
+              <p className="mt-3 text-xs text-gray-400 text-center font-light flex items-center justify-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
                 Your information is kept confidential and secure.
               </p>
             </form>

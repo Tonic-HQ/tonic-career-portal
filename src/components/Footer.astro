@@ -4,12 +4,13 @@ import { defaultConfig } from '../config';
 const currentYear = new Date().getFullYear();
 ---
 
-<footer class="bg-white border-t border-gray-100 mt-auto">
-  <div class="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-    <p class="text-sm text-gray-400">
+<footer class="bg-white mt-auto">
+  <div class="h-px" style="background: linear-gradient(90deg, transparent 0%, #e2e8f0 30%, #cbd5e1 50%, #e2e8f0 70%, transparent 100%)" />
+  <div class="max-w-6xl mx-auto px-4 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <p class="text-sm text-gray-400 font-light">
       &copy; {currentYear} {defaultConfig.companyName}. All rights reserved.
     </p>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-5">
       {defaultConfig.privacyPolicyUrl && (
         <a
           href={defaultConfig.privacyPolicyUrl}
@@ -18,15 +19,15 @@ const currentYear = new Date().getFullYear();
           Privacy Policy
         </a>
       )}
-      <span class="text-sm text-gray-300">
-        Powered by{' '}
+      <span class="flex items-center gap-1.5 text-sm text-gray-400">
+        Powered by
         <a
           href="https://tonichq.com"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-gray-400 hover:text-gray-600 transition-colors"
+          class="font-semibold text-gray-500 hover:text-blue-600 transition-colors"
         >
-          Tonic Career Portal
+          Tonic
         </a>
       </span>
     </div>

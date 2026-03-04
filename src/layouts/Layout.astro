@@ -41,7 +41,7 @@ const isEmbed = embed || Astro.url.searchParams.get('embed') === 'true';
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style define:vars={{ primaryColor: defaultConfig.primaryColor, accentColor: defaultConfig.accentColor }}>
     :root {
       --color-primary: var(--primaryColor);
@@ -52,9 +52,9 @@ const isEmbed = embed || Astro.url.searchParams.get('embed') === 'true';
     }
   </style>
 </head>
-<body class={isEmbed ? 'bg-transparent' : 'bg-gray-50 min-h-screen flex flex-col'}>
+<body class={isEmbed ? 'bg-transparent' : 'bg-slate-50 min-h-screen flex flex-col'}>
   {!isEmbed && <Header />}
-  <main class={isEmbed ? '' : 'flex-1 max-w-6xl w-full mx-auto px-4 py-8'}>
+  <main class={isEmbed ? '' : 'flex-1 w-full'}>
     <slot />
   </main>
   {!isEmbed && <Footer />}
