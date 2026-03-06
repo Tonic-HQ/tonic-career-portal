@@ -527,23 +527,21 @@ export default function PreviewPage() {
           linkColor: config.linkColor,
           sourceUrl: config.sourceUrl,
           source: config.source,
+          showHeader: config.showHeader,
           service: { corpToken: config.corpToken, swimlane: config.swimlane },
         }}),
       });
       if (res.ok) {
         const { id } = await res.json();
-        const fullUrl = `${window.location.origin}/${id}`;
-        setShareUrl(fullUrl);
-        // Update URL bar to the clean short URL
-        window.history.replaceState(null, '', `/${id}`);
+        setShareUrl(`${window.location.origin}/${id}`);
       } else {
         setShareUrl(hashUrl);
-        window.history.replaceState(null, '', `${window.location.pathname}#config=${encoded}`);
       }
     } catch {
       setShareUrl(hashUrl);
-      window.history.replaceState(null, '', `${window.location.pathname}#config=${encoded}`);
     }
+    // Keep builder on /preview — don't change URL to /<id>
+    // The short URL is for sharing, not for the builder's browser
 
     setImportedConfig(config);
     setReady(true);
