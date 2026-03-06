@@ -31,6 +31,7 @@ interface ProxyResponse {
     consentCheckbox?: boolean;
     privacyPolicyUrl?: string;
   };
+  removeTopTitleBar?: boolean;
 }
 
 interface ImportedConfig {
@@ -276,8 +277,8 @@ function ImportForm({
           ? data.colors.topBarColor
           : data.colors?.linkColor,
         linkColor: data.colors?.linkColor,
-        // Show header if source has a logo or explicit top bar color
-        showHeader: !!(data.companyLogoPath || (data.colors?.topBarColor && data.colors.topBarColor !== '#000000')),
+        // Respect the source config's header visibility setting
+        showHeader: data.removeTopTitleBar ? false : true,
       });
     } catch {
       setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");

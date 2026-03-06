@@ -140,6 +140,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Attempt 3: If we only got app.json (no json5), try to extract colors from custom.css
   // The oscp-template deploy script injects CSS variables for colors
   let cssColors: { topBarColor?: string; sideBarColor?: string; linkColor?: string } | null = null;
+  let cssHeaderHidden = false;
   if (source === 'appjson') {
     try {
       const cssUrl = `${baseUrl}/static/custom.css`;
@@ -156,8 +157,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const linkMatch = cssText.match(/--link-color:\s*(#[0-9a-fA-F]{3,8})/);
           // Extract .novo-header background-color
           const headerMatch = cssText.match(/\.novo-header\s*\{[^}]*background-color:\s*(#[0-9a-fA-F]{3,8})/);
-          // Check if header is hidden (removeTopTitleBar)
+          // Check if header is hidden (removeTopTitleBar injects display:none on .novo-header)
           const headerHidden = cssText.includes('.novo-header') && cssText.includes('display: none');
+          cssHeaderHidden = headerHidden;
 
           if (sidebarMatch || linkMatch || headerMatch) {
             cssColors = {
@@ -209,6 +211,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       privacyConsent: opts.privacyConsent,
       languageDropdownOptions: opts.languageDropdownOptions,
       removePoweredByBullhorn: configData.removePoweredByBullhorn,
+      removeTopTitleBar: configData.removeTopTitleBar ?? false,
     };
   } else {
     // Standard app.json format
@@ -236,6 +239,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       additionalJobCriteria: configData.additionalJobCriteria,
       eeoc: configData.eeoc,
       privacyConsent: configData.privacyConsent,
+      removeTopTitleBar: cssHeaderHidden,
     };
   }
 
