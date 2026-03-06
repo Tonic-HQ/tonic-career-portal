@@ -1,27 +1,51 @@
 import { useState, useEffect, useRef } from 'react';
 import { submitApplication } from '../api';
-import { loadConfig } from '../config';
+import { loadConfig, getConfigOverride } from '../config';
+import { getAttribution, formatAttributionNote } from '../utils/attribution';
+import { buildLinkedInAuthUrl, consumeLinkedInProfile } from '../utils/linkedin';
+import type { LinkedInProfile } from '../utils/linkedin';
 
 interface Props {
   jobId: number;
   jobTitle: string;
   isOpen: boolean;
   onClose: () => void;
+  linkedInProfile?: LinkedInProfile | null;
 }
 
-export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) {
+export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInProfile }: Props) {
   const config = loadConfig();
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [linkedInUrl, setLinkedInUrl] = useState('');
+  const [filledByLinkedIn, setFilledByLinkedIn] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-fill from LinkedIn profile if available
+  useEffect(() => {
+    if (linkedInProfile) {
+      setFirstName(linkedInProfile.firstName);
+      setLastName(linkedInProfile.lastName);
+      setEmail(linkedInProfile.email);
+      if (linkedInProfile.linkedinId) {
+        setLinkedInUrl(`https://www.linkedin.com/in/${linkedInProfile.linkedinId}`);
+      }
+      setFilledByLinkedIn(true);
+    }
+  }, [linkedInProfile]);
 
   useEffect(() => {
     if (isOpen) {
       setStatus('idle');
       setErrorMessage('');
       setPrivacyChecked(false);
-      setTimeout(() => firstInputRef.current?.focus(), 100);
+      if (!linkedInProfile) {
+        setTimeout(() => firstInputRef.current?.focus(), 100);
+      }
     }
   }, [isOpen]);
 
@@ -45,24 +69,50 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
     setStatus('submitting');
     setErrorMessage('');
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    const trimFirst = firstName.trim();
+    const trimLast = lastName.trim();
+    const trimEmail = email.trim();
 
-    const firstName = (formData.get('firstName') as string).trim();
-    const lastName = (formData.get('lastName') as string).trim();
-    const email = (formData.get('email') as string).trim();
-
-    if (!firstName || !lastName || !email) {
+    if (!trimFirst || !trimLast || !trimEmail) {
       setStatus('error');
       setErrorMessage('Please fill in all required fields.');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimEmail)) {
       setStatus('error');
       setErrorMessage('Please enter a valid email address.');
       return;
+    }
+
+    // Validate LinkedIn URL if provided
+    const trimLinkedIn = linkedInUrl.trim();
+    if (trimLinkedIn && !trimLinkedIn.includes('linkedin.com/')) {
+      setStatus('error');
+      setErrorMessage('Please enter a valid LinkedIn profile URL.');
+      return;
+    }
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    // Ensure controlled values are in formData
+    formData.set('firstName', trimFirst);
+    formData.set('lastName', trimLast);
+    formData.set('email', trimEmail);
+    if (trimLinkedIn) formData.set('linkedInUrl', trimLinkedIn);
+
+    // Attach attribution data
+    const attribution = getAttribution();
+    if (attribution) {
+      formData.set('source', attribution.source);
+      formData.set('attributionNote', formatAttributionNote(attribution));
+    }
+
+    // Flag if filled via LinkedIn
+    if (filledByLinkedIn) {
+      formData.set('appliedViaLinkedIn', 'true');
     }
 
     try {
@@ -75,6 +125,13 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
       setStatus('error');
       setErrorMessage('Something went wrong. Please try again.');
     }
+  }
+
+  function handleLinkedInAuth() {
+    const override = getConfigOverride();
+    const portalId = (override as any)?.portalId || 'preview';
+    const authUrl = buildLinkedInAuthUrl(portalId, jobId, window.location.href);
+    window.location.href = authUrl;
   }
 
   const requirePrivacy = Boolean(config.privacyPolicyUrl);
@@ -160,6 +217,38 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
               )}
 
               <div className="space-y-4">
+                {/* Continue with LinkedIn button */}
+                {!filledByLinkedIn && (
+                  <button
+                    type="button"
+                    onClick={handleLinkedInAuth}
+                    className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border-2 border-[#0A66C2] bg-[#0A66C2] text-white font-semibold text-sm hover:bg-[#004182] active:scale-[0.98] transition-all"
+                    style={{ minHeight: '48px' }}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    Continue with LinkedIn
+                  </button>
+                )}
+
+                {!filledByLinkedIn && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">or fill manually</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                )}
+
+                {filledByLinkedIn && (
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                    <svg className="w-4 h-4 text-[#0A66C2] flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    <span className="text-sm font-medium text-blue-700">Filled from LinkedIn</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="firstName" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
@@ -174,6 +263,8 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                       autoComplete="given-name"
                       className={inputClass}
                       placeholder="Jane"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
                       onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
                       onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                     />
@@ -190,6 +281,8 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                       autoComplete="family-name"
                       className={inputClass}
                       placeholder="Smith"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
                       onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
                       onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                     />
@@ -208,9 +301,35 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
                     autoComplete="email"
                     className={inputClass}
                     placeholder="jane@example.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                     onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
                     onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
                   />
+                </div>
+
+                {/* LinkedIn URL field — all tiers */}
+                <div>
+                  <label htmlFor="linkedInUrl" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    LinkedIn Profile
+                  </label>
+                  <div className="relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0A66C2] pointer-events-none" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    <input
+                      type="url"
+                      id="linkedInUrl"
+                      name="linkedInUrl"
+                      autoComplete="url"
+                      className={`${inputClass} pl-9`}
+                      placeholder="linkedin.com/in/janesmith"
+                      value={linkedInUrl}
+                      onChange={e => setLinkedInUrl(e.target.value)}
+                      onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                  </div>
                 </div>
 
                 {config.applyForm.showPhone && (

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { Job } from '../demo-data';
 import ApplyModal from './ApplyModal';
+import { consumeLinkedInProfile } from '../utils/linkedin';
+import type { LinkedInProfile } from '../utils/linkedin';
+import { captureAttribution } from '../utils/attribution';
 
 interface Props {
   job: Job;
@@ -42,13 +45,25 @@ export default function JobDetailView({ job }: Props) {
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
+  const [linkedInProfile, setLinkedInProfile] = useState<LinkedInProfile | null>(null);
 
   useEffect(() => {
+    // Capture attribution
+    captureAttribution();
+
     if (typeof localStorage !== 'undefined') {
       setAlreadyApplied(localStorage.getItem(`applied_${job.id}`) === 'true');
     }
     // Check for native share support (mobile)
     setCanNativeShare(typeof navigator !== 'undefined' && !!navigator.share);
+
+    // Check for LinkedIn profile from OAuth callback
+    const profile = consumeLinkedInProfile();
+    if (profile) {
+      setLinkedInProfile(profile);
+      // Auto-open the apply modal with pre-filled data
+      setIsModalOpen(true);
+    }
   }, [job.id]);
 
   function handleModalClose() {
@@ -398,7 +413,7 @@ export default function JobDetailView({ job }: Props) {
         </button>
       </div>
 
-      <ApplyModal jobId={job.id} jobTitle={job.title} isOpen={isModalOpen} onClose={handleModalClose} />
+      <ApplyModal jobId={job.id} jobTitle={job.title} isOpen={isModalOpen} onClose={handleModalClose} linkedInProfile={linkedInProfile} />
     </>
   );
 }

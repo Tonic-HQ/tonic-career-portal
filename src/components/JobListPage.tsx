@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { searchJobs, getAllJobs } from '../api';
 import type { Job } from '../demo-data';
+import { captureAttribution } from '../utils/attribution';
 
 function formatCardDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString('en-US', {
@@ -217,6 +218,9 @@ export default function JobListPage() {
   );
 
   useEffect(() => {
+    // Capture attribution on first page load
+    captureAttribution();
+
     fetchJobs({ query, categories, states, cities, page });
     getAllJobs().then((all) => {
       const counts = computeCounts(all);
