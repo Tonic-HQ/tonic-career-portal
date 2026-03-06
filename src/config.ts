@@ -10,7 +10,12 @@ export interface ApplyFormField {
   required?: boolean;
   /** Placeholder text */
   placeholder?: string;
-  /** Options for select fields */
+  /** Where to get select options:
+   *  - 'bullhorn': fetch from Bullhorn field metadata at runtime (stays in sync)
+   *  - 'static': use the options array below (for non-Bullhorn values)
+   *  Defaults to 'bullhorn' for select fields */
+  optionsSource?: 'bullhorn' | 'static';
+  /** Static options (only used when optionsSource is 'static') */
   options?: string[];
 }
 
