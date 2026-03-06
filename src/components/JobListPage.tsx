@@ -1,143 +1,168 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchJobs } from '../api';
+import { searchJobs, getAllJobs } from '../api';
 import type { Job } from '../demo-data';
-import { getAllJobs } from '../api';
 
-function formatRelativeDate(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days}d ago`;
-  if (days < 30) return `${Math.floor(days / 7)}w ago`;
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
+function formatCardDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
-const BADGE_COLORS: Record<string, string> = {
-  'Full-Time': 'bg-blue-50 text-blue-700 border-blue-100',
-  'Part-Time': 'bg-amber-50 text-amber-700 border-amber-100',
-  'Contract': 'bg-violet-50 text-violet-700 border-violet-100',
-  'Temp': 'bg-slate-100 text-slate-600 border-slate-200',
-};
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
-// Category-based avatar colors for visual variety
-const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%)',
-  'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-  'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
-  'linear-gradient(135deg, #059669 0%, #047857 100%)',
-  'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-  'linear-gradient(135deg, #db2777 0%, #be185d 100%)',
-];
+interface FilterCounts {
+  categories: Record<string, number>;
+  states: Record<string, number>;
+  cities: Record<string, number>;
+}
 
-function getCategoryGradient(categoryName: string): string {
-  let hash = 0;
-  for (let i = 0; i < categoryName.length; i++) {
-    hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+function computeCounts(jobs: Job[]): FilterCounts {
+  const categories: Record<string, number> = {};
+  const states: Record<string, number> = {};
+  const cities: Record<string, number> = {};
+  for (const job of jobs) {
+    const cat = job.publishedCategory?.name;
+    if (cat) categories[cat] = (categories[cat] ?? 0) + 1;
+    const st = job.address?.state;
+    if (st) states[st] = (states[st] ?? 0) + 1;
+    const city = job.address?.city;
+    if (city && city !== job.address?.state) cities[city] = (cities[city] ?? 0) + 1;
   }
-  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+  return { categories, states, cities };
 }
 
 function JobCard({ job }: { job: Job }) {
-  const locationStr = job.address.state === 'Remote'
-    ? 'Remote'
-    : `${job.address.city}, ${job.address.state}`;
-
-  const badgeClass = BADGE_COLORS[job.employmentType] ?? 'bg-slate-100 text-slate-600 border-slate-200';
-  const avatarGradient = getCategoryGradient(job.publishedCategory.name ?? 'Job');
-  const categoryInitial = (job.publishedCategory.name ?? 'J')[0].toUpperCase();
+  const locationStr =
+    job.address.state === 'Remote'
+      ? 'Remote'
+      : `${job.address.city}, ${job.address.state}`;
+  const descriptionPreview = stripHtml(job.publicDescription);
 
   return (
     <a
       href={`/jobs/${job.id}`}
-      className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 p-6 flex flex-col gap-4 hover:border-gray-200 hover:-translate-y-1 overflow-hidden"
+      className="block bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-5 hover:border-gray-300 group"
     >
-      {/* Left accent line — slides in on hover */}
-      <div
-        className="absolute left-0 top-6 bottom-6 w-[3px] rounded-r-full opacity-0 group-hover:opacity-100 transition-all duration-300"
-        style={{ backgroundColor: 'var(--color-primary)' }}
-      />
-
-      {/* Header: avatar + title + arrow */}
-      <div className="flex items-start gap-3.5">
-        <div
-          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-105"
-          style={{ background: avatarGradient }}
-        >
-          {categoryInitial}
-        </div>
-
-        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
-          <h2 className="text-[15px] font-semibold text-gray-900 group-hover:text-primary transition-colors leading-snug line-clamp-2">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+        <div className="flex-1 min-w-0">
+          <h2
+            className="text-[15px] font-semibold group-hover:underline leading-snug"
+            style={{ color: 'var(--color-primary)' }}
+          >
             {job.title}
           </h2>
-          <svg
-            className="w-4 h-4 text-gray-300 group-hover:text-primary flex-shrink-0 mt-0.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--color-primary)', opacity: 0.7 }}>
+            {job.publishedCategory.name}
+          </p>
+        </div>
+
+        {/* Badges */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-600 whitespace-nowrap">
+            <svg
+              className="w-3 h-3 flex-shrink-0 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {locationStr}
+          </span>
+          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-600 whitespace-nowrap">
+            {job.employmentType}
+          </span>
+          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+            {formatCardDate(job.dateLastPublished)}
+          </span>
         </div>
       </div>
 
-      {/* Metadata */}
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-medium text-gray-400 tracking-wide uppercase">
-        <span className="flex items-center gap-1 normal-case text-[12px] font-normal tracking-normal text-gray-500">
-          <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {locationStr}
-        </span>
-        <span className="text-gray-200">·</span>
-        <span className="normal-case text-[12px] font-normal tracking-normal text-gray-400">{job.publishedCategory.name}</span>
-        <span className="text-gray-200">·</span>
-        <span className="normal-case text-[12px] font-normal tracking-normal text-gray-400">{formatRelativeDate(job.dateLastPublished)}</span>
-      </div>
-
-      {/* Badges */}
-      <div className="flex flex-wrap items-center gap-2 mt-auto pt-1">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${badgeClass}`}>
-          {job.employmentType}
-        </span>
-        {job.salary && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500 text-white shadow-sm shadow-emerald-200">
-            <svg className="w-3 h-3 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {job.salary}
-          </span>
-        )}
-      </div>
+      {descriptionPreview && (
+        <p className="mt-2.5 text-sm text-gray-500 leading-relaxed line-clamp-2">{descriptionPreview}</p>
+      )}
     </a>
   );
 }
 
 function LoadingCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 overflow-hidden">
-      <div className="flex items-start gap-3.5 mb-4">
-        <div className="w-10 h-10 rounded-xl skeleton-shimmer flex-shrink-0" />
+    <div className="bg-white border border-gray-200 rounded-lg p-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
         <div className="flex-1">
-          <div className="h-4 skeleton-shimmer rounded-lg w-3/4 mb-2" />
-          <div className="h-3 skeleton-shimmer rounded-lg w-1/2" />
+          <div className="h-4 skeleton-shimmer rounded w-2/3 mb-1.5" />
+          <div className="h-3 skeleton-shimmer rounded w-1/4" />
+        </div>
+        <div className="flex gap-1.5">
+          <div className="h-6 skeleton-shimmer rounded w-24" />
+          <div className="h-6 skeleton-shimmer rounded w-16" />
+          <div className="h-6 skeleton-shimmer rounded w-20" />
         </div>
       </div>
-      <div className="h-3 skeleton-shimmer rounded-lg w-2/3 mb-5" />
-      <div className="flex gap-2">
-        <div className="h-6 skeleton-shimmer rounded-lg w-20" />
-        <div className="h-6 skeleton-shimmer rounded-lg w-24" />
-      </div>
+      <div className="h-3 skeleton-shimmer rounded w-full mb-1.5" />
+      <div className="h-3 skeleton-shimmer rounded w-4/5" />
     </div>
   );
 }
 
-const PAGE_SIZE = 9;
+function FilterSection({
+  title,
+  options,
+  counts,
+  selected,
+  onSelect,
+}: {
+  title: string;
+  options: string[];
+  counts: Record<string, number>;
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <div className="mb-6">
+      <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">{title}</h3>
+      <ul className="space-y-0.5">
+        {options.map((option) => (
+          <li key={option}>
+            <label className="flex items-center gap-2.5 cursor-pointer group py-1 px-1 rounded-md hover:bg-gray-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={selected === option}
+                onChange={() => onSelect(selected === option ? '' : option)}
+                className="w-4 h-4 rounded border-gray-300 cursor-pointer flex-shrink-0"
+                style={{ accentColor: 'var(--color-primary)' }}
+              />
+              <span
+                className={`text-sm flex-1 transition-colors ${
+                  selected === option ? 'font-semibold' : 'text-gray-600 group-hover:text-gray-900'
+                }`}
+                style={selected === option ? { color: 'var(--color-primary)' } : undefined}
+              >
+                {option}
+              </span>
+              {counts[option] != null && (
+                <span className="text-xs text-gray-400 tabular-nums">({counts[option]})</span>
+              )}
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const PAGE_SIZE = 15;
 
 export default function JobListPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -145,147 +170,160 @@ export default function JobListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [filterCounts, setFilterCounts] = useState<FilterCounts>({
+    categories: {},
+    states: {},
+    cities: {},
+  });
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [allStates, setAllStates] = useState<string[]>([]);
-  const [allTypes, setAllTypes] = useState<string[]>([]);
+  const [allCities, setAllCities] = useState<string[]>([]);
+
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [state, setState] = useState('');
-  const [employmentType, setEmploymentType] = useState('');
-  const [sort, setSort] = useState<'date' | 'title'>('date');
+  const [city, setCity] = useState('');
   const [page, setPage] = useState(1);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queryRef = useRef(query);
-  queryRef.current = query;
 
-  const fetchJobs = useCallback(async (params: {
-    query: string;
-    category: string;
-    state: string;
-    employmentType: string;
-    sort: 'date' | 'title';
-    page: number;
-  }) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await searchJobs({
-        query: params.query || undefined,
-        category: params.category || undefined,
-        state: params.state || undefined,
-        employmentType: params.employmentType || undefined,
-        sort: params.sort,
-        page: params.page,
-        pageSize: PAGE_SIZE,
-      });
-      setJobs(result.jobs);
-      setTotal(result.total);
-    } catch (e) {
-      setError('Failed to load jobs. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const fetchJobs = useCallback(
+    async (params: { query: string; category: string; state: string; city: string; page: number }) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await searchJobs({
+          query: params.query || undefined,
+          category: params.category || undefined,
+          state: params.state || undefined,
+          city: params.city || undefined,
+          sort: 'date',
+          page: params.page,
+          pageSize: PAGE_SIZE,
+        });
+        setJobs(result.jobs);
+        setTotal(result.total);
+      } catch {
+        setError('Failed to load jobs. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    fetchJobs({ query, category, state, city, page });
+    getAllJobs().then((all) => {
+      const counts = computeCounts(all);
+      setFilterCounts(counts);
+      setAllCategories(Object.keys(counts.categories).sort());
+      setAllStates(Object.keys(counts.states).sort());
+      setAllCities(Object.keys(counts.cities).sort());
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    fetchJobs({ query, category, state, employmentType, sort, page });
-    getAllJobs().then(allJobs => {
-      setAllCategories([...new Set(allJobs.map(j => j.publishedCategory?.name).filter(Boolean))].sort());
-      setAllStates([...new Set(allJobs.map(j => j.address?.state).filter(Boolean))].sort());
-      setAllTypes([...new Set(allJobs.map(j => j.employmentType).filter(Boolean))].sort());
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
     setPage(1);
-    fetchJobs({ query, category, state, employmentType, sort, page: 1 });
-  }, [category, state, employmentType, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchJobs({ query, category, state, city, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, state, city]);
 
   useEffect(() => {
-    fetchJobs({ query, category, state, employmentType, sort, page });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchJobs({ query, category, state, city, page });
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   function handleQueryChange(value: string) {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      fetchJobs({ query: value, category, state, employmentType, sort, page: 1 });
+      fetchJobs({ query: value, category, state, city, page: 1 });
     }, 300);
   }
-
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  function getPaginationPages(current: number, total: number): (number | '...')[] {
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const pages: (number | '...')[] = [];
-    if (current <= 3) {
-      pages.push(1, 2, 3, 4, '...', total);
-    } else if (current >= total - 2) {
-      pages.push(1, '...', total - 3, total - 2, total - 1, total);
-    } else {
-      pages.push(1, '...', current - 1, current, current + 1, '...', total);
-    }
-    return pages;
-  }
-
-  const hasActiveFilters = Boolean(query || category || state || employmentType);
 
   function clearFilters() {
     setQuery('');
     setCategory('');
     setState('');
-    setEmploymentType('');
-    setSort('date');
+    setCity('');
     setPage(1);
-    fetchJobs({ query: '', category: '', state: '', employmentType: '', sort: 'date', page: 1 });
+    fetchJobs({ query: '', category: '', state: '', city: '', page: 1 });
   }
+
+  const hasActiveFilters = Boolean(query || category || state || city);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const filterPanel = (
+    <div className="w-full">
+      {/* Keyword search */}
+      <div className="mb-6">
+        <div className="relative">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            placeholder="Search jobs..."
+            className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 bg-white placeholder:text-gray-400 transition-all"
+            aria-label="Search jobs"
+          />
+        </div>
+      </div>
+
+      <FilterSection
+        title="Filter by Category"
+        options={allCategories}
+        counts={filterCounts.categories}
+        selected={category}
+        onSelect={setCategory}
+      />
+      <FilterSection
+        title="Filter by State"
+        options={allStates}
+        counts={filterCounts.states}
+        selected={state}
+        onSelect={setState}
+      />
+      <FilterSection
+        title="Filter by City"
+        options={allCities}
+        counts={filterCounts.cities}
+        selected={city}
+        onSelect={setCity}
+      />
+
+      {hasActiveFilters && (
+        <button
+          onClick={clearFilters}
+          className="w-full text-sm font-semibold py-2 px-4 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all mt-2"
+        >
+          Clear All Filters
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div>
-      {/* Hero section — full-width gradient */}
-      <div
-        className="relative overflow-hidden border-b border-gray-100"
-        style={{ background: 'linear-gradient(180deg, rgba(239,246,255,0.9) 0%, rgba(240,249,255,0.5) 50%, rgba(248,250,252,0) 100%)' }}
-      >
-        {/* Subtle grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage: 'linear-gradient(var(--color-primary) 1px, transparent 1px), linear-gradient(90deg, var(--color-primary) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-
-        <div className="relative max-w-6xl mx-auto px-4 pt-12 pb-10">
-          <div className="max-w-2xl">
-            {/* "Now Hiring" pill */}
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-5"
-              style={{ backgroundColor: 'rgba(37,99,235,0.07)', color: 'var(--color-primary)' }}
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: 'var(--color-primary)', animation: 'pulse-dot 2s ease-in-out infinite' }}
-              />
-              Now Hiring
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight leading-none mb-3">
-              Open Positions
-            </h1>
-            <p className="text-lg text-gray-500 font-light leading-relaxed">
-              Find your next opportunity and grow with a team doing meaningful work.
-            </p>
-          </div>
-
-          {/* Search bar — inside the hero */}
-          <div className="mt-8 max-w-2xl relative">
+      {/* Mobile sticky top bar */}
+      <div className="lg:hidden sticky top-16 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
             <svg
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none"
-              style={{ color: 'var(--color-primary)', opacity: 0.5 }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -294,224 +332,212 @@ export default function JobListPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
-              type="text"
+              type="search"
               value={query}
-              onChange={e => handleQueryChange(e.target.value)}
-              placeholder="Search jobs by title, keyword, or location..."
-              className="w-full pl-12 pr-4 py-4 text-base border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 bg-white placeholder:text-gray-400 transition-all"
-              style={{
-                boxShadow: '0 4px 24px -4px rgba(37,99,235,0.12), 0 2px 8px -2px rgba(0,0,0,0.06)',
-              }}
-              onFocus={e => { e.currentTarget.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.1), 0 4px 24px -4px rgba(37,99,235,0.15), 0 2px 8px -2px rgba(0,0,0,0.06)'; }}
-              onBlur={e => { e.currentTarget.style.boxShadow = '0 4px 24px -4px rgba(37,99,235,0.12), 0 2px 8px -2px rgba(0,0,0,0.06)'; }}
-              aria-label="Search jobs"
+              onChange={(e) => handleQueryChange(e.target.value)}
+              placeholder="Search jobs..."
+              className="w-full pl-9 pr-3 py-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 bg-white"
+              style={{ minHeight: '44px' }}
             />
-            {query && (
-              <button
-                onClick={() => handleQueryChange('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-                aria-label="Clear search"
+          </div>
+          <button
+            onClick={() => setMobileFiltersOpen(true)}
+            className="relative flex items-center gap-1.5 px-3 rounded-lg text-sm font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+            style={{ minHeight: '44px' }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            Filters
+            {hasActiveFilters && (
+              <span
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {[category, state, city].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main layout */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex gap-8">
+          {/* Desktop sidebar */}
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <div className="sticky top-24">{filterPanel}</div>
+          </aside>
+
+          {/* Main content */}
+          <main className="flex-1 min-w-0">
+            {/* Results header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                Open Positions
+                {!loading && (
+                  <span className="ml-2 text-base font-normal text-gray-500">({total})</span>
+                )}
+                {loading && (
+                  <span className="ml-2 inline-flex items-center">
+                    <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </span>
+                )}
+              </h2>
+              {hasActiveFilters && !loading && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-all"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mb-4 flex items-center gap-3">
+                <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            {/* Job list */}
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <LoadingCard key={i} />
+                ))}
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 80 80" stroke="currentColor" strokeWidth={1.5}>
+                    <rect x="10" y="30" width="60" height="38" rx="6" />
+                    <path d="M28 30v-6a4 4 0 014-4h16a4 4 0 014 4v6" />
+                    <line x1="10" y1="50" x2="70" y2="50" />
+                    <circle cx="40" cy="50" r="3" fill="currentColor" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-gray-800 mb-1">No positions found</h3>
+                <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                  {hasActiveFilters
+                    ? 'Try adjusting your filters or search terms.'
+                    : 'No positions are currently available. Check back soon!'}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="mt-4 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-50 transition-all"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {jobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+              <nav className="flex items-center justify-center gap-1.5 mt-8" aria-label="Pagination">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ minHeight: '44px', minWidth: '44px' }}
+                  aria-label="Previous page"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`inline-flex items-center justify-center rounded-xl text-sm font-semibold transition-all border ${
+                      page === p
+                        ? 'text-white border-transparent shadow-sm'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                    style={{
+                      minHeight: '44px',
+                      minWidth: '44px',
+                      ...(page === p ? { backgroundColor: 'var(--color-primary)' } : {}),
+                    }}
+                    aria-label={`Page ${p}`}
+                    aria-current={page === p ? 'page' : undefined}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="inline-flex items-center justify-center rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ minHeight: '44px', minWidth: '44px' }}
+                  aria-label="Next page"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </nav>
+            )}
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile filter bottom sheet */}
+      {mobileFiltersOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900 text-base">Filters</h3>
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                className="flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                style={{ minHeight: '44px', minWidth: '44px' }}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Filters + grid */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Filters row */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white text-gray-600 cursor-pointer transition-colors hover:border-gray-300"
-            aria-label="Filter by category"
-          >
-            <option value="">All Categories</option>
-            {allCategories.map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-
-          <select
-            value={state}
-            onChange={e => setState(e.target.value)}
-            className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white text-gray-600 cursor-pointer transition-colors hover:border-gray-300"
-            aria-label="Filter by location"
-          >
-            <option value="">All Locations</option>
-            {allStates.map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-
-          <select
-            value={employmentType}
-            onChange={e => setEmploymentType(e.target.value)}
-            className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white text-gray-600 cursor-pointer transition-colors hover:border-gray-300"
-            aria-label="Filter by employment type"
-          >
-            <option value="">All Types</option>
-            {allTypes.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-
-          <div className="flex-1" />
-
-          <select
-            value={sort}
-            onChange={e => setSort(e.target.value as 'date' | 'title')}
-            className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white text-gray-600 cursor-pointer transition-colors hover:border-gray-300"
-            aria-label="Sort jobs"
-          >
-            <option value="date">Newest First</option>
-            <option value="title">A to Z</option>
-          </select>
-        </div>
-
-        {/* Results count + clear filters */}
-        <div className="flex items-center justify-between mb-5 min-h-[24px]">
-          <div className="flex items-center gap-3">
-            {loading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Loading...
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                <span className="font-semibold text-gray-800">{total}</span>
-                {' '}
-                {total === 1 ? 'position' : 'positions'} found
-              </p>
-            )}
-
-            {hasActiveFilters && !loading && (
-              <button
-                onClick={clearFilters}
-                className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all hover:bg-blue-50"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Error state */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-sm text-red-700 mb-6 flex items-center gap-3">
-            <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        {/* Job grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-              <LoadingCard key={i} />
-            ))}
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
-              <svg
-                className="w-10 h-10 text-gray-300"
-                fill="none"
-                viewBox="0 0 80 80"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <rect x="10" y="30" width="60" height="38" rx="6" />
-                <path d="M28 30v-6a4 4 0 014-4h16a4 4 0 014 4v6" />
-                <line x1="10" y1="50" x2="70" y2="50" />
-                <circle cx="40" cy="50" r="3" fill="currentColor" />
-              </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-1.5">No positions found</h3>
-            <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
-              {hasActiveFilters
-                ? 'Try adjusting your filters or search terms to find more opportunities.'
-                : 'No positions are currently available. Check back soon!'}
-            </p>
-            {hasActiveFilters && (
+            <div className="overflow-y-auto p-5 flex-1">{filterPanel}</div>
+            <div className="px-5 py-4 border-t border-gray-100 pb-safe">
               <button
-                onClick={clearFilters}
-                className="mt-5 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:bg-blue-50"
-                style={{ color: 'var(--color-primary)' }}
+                onClick={() => setMobileFiltersOpen(false)}
+                className="w-full py-3.5 rounded-xl font-semibold text-white text-sm transition-all"
+                style={{ backgroundColor: 'var(--color-primary)', minHeight: '44px' }}
               >
-                Clear all filters
+                Show {total > 0 ? `${total} ` : ''}Results
               </button>
-            )}
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {jobs.map(job => (
-              <JobCard key={job.id} job={job} />
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <nav className="flex items-center justify-center gap-1.5" aria-label="Pagination">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              aria-label="Previous page"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            {getPaginationPages(page, totalPages).map((p, i) =>
-              p === '...' ? (
-                <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">
-                  ···
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  onClick={() => setPage(p as number)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-semibold transition-all border ${
-                    page === p
-                      ? 'text-white border-transparent shadow-sm'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                  }`}
-                  style={page === p ? { backgroundColor: 'var(--color-primary)', borderColor: 'var(--color-primary)' } : undefined}
-                  aria-label={`Page ${p}`}
-                  aria-current={page === p ? 'page' : undefined}
-                >
-                  {p}
-                </button>
-              )
-            )}
-
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              aria-label="Next page"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </nav>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

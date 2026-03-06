@@ -80,12 +80,12 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
   const requirePrivacy = Boolean(config.privacyPolicyUrl);
   const canSubmit = status !== 'submitting' && (!requirePrivacy || privacyChecked);
 
-  const inputClass = "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-400 bg-white placeholder:text-gray-400 transition-all";
+  const inputClass = "w-full border border-gray-200 rounded-xl px-3.5 py-3 text-base sm:text-sm text-gray-900 focus:outline-none focus:border-blue-400 bg-white placeholder:text-gray-400 transition-all";
   const inputFocusStyle = "0 0 0 3px rgba(37,99,235,0.1), 0 1px 3px rgba(0,0,0,0.05)";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -97,8 +97,8 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
         aria-hidden="true"
       />
 
-      {/* Modal — scale-in entrance */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden animate-scale-in">
+      {/* Modal — full-screen on mobile, centered card on desktop */}
+      <div className="relative bg-white sm:rounded-2xl shadow-2xl w-full sm:max-w-md mx-auto overflow-hidden animate-scale-in h-full sm:h-auto flex flex-col sm:block">
         {/* Header accent bar */}
         <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, var(--color-primary) 0%, #7c3aed 100%)' }} />
 
@@ -124,7 +124,7 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
         <div className="h-px bg-gray-100 mx-6" />
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-y-auto">
           {status === 'success' ? (
             <div className="text-center py-6">
               {/* Animated success icon */}

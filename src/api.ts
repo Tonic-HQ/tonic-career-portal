@@ -6,6 +6,7 @@ export interface SearchParams {
   query?: string;
   category?: string;
   state?: string;
+  city?: string;
   employmentType?: string;
   sort?: 'date' | 'title';
   page?: number;
@@ -76,6 +77,7 @@ function searchJobsDemo(params: SearchParams): SearchResult {
   }
   if (params.category) jobs = jobs.filter(j => j.publishedCategory.name === params.category);
   if (params.state) jobs = jobs.filter(j => j.address.state === params.state);
+  if (params.city) jobs = jobs.filter(j => j.address.city === params.city);
   if (params.employmentType) jobs = jobs.filter(j => j.employmentType === params.employmentType);
   if (params.sort === 'title') jobs.sort((a, b) => a.title.localeCompare(b.title));
   else jobs.sort((a, b) => b.dateLastPublished - a.dateLastPublished);
@@ -95,6 +97,7 @@ async function searchJobsBullhorn(params: SearchParams, config: ReturnType<typeo
   if (params.query) query += ` AND (title:${params.query} OR publicDescription:${params.query})`;
   if (params.category) query += ` AND (publishedCategory.name:"${params.category}")`;
   if (params.state) query += ` AND (address.state:"${params.state}")`;
+  if (params.city) query += ` AND (address.city:"${params.city}")`;
   if (params.employmentType) query += ` AND (employmentType:"${params.employmentType}")`;
 
   const url = `${base}/search/JobOrder?query=${encodeURIComponent(query)}&fields=${config.service.fields}&count=${params.pageSize ?? 20}&start=${start}&sort=${sort}&showTotalMatched=true`;
