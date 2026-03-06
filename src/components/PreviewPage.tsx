@@ -493,27 +493,39 @@ export default function PreviewPage() {
       sessionStorage.setItem('tonic_portal_config', JSON.stringify(config));
     } catch { /* quota exceeded or private browsing */ }
 
-    // Try to create a stored portal with a clean short URL
+    // Create a stored portal with a clean short URL
     // Falls back to hash-based URL if the API isn't available
     const encoded = encodeConfig(config);
     const hashUrl = `${window.location.origin}/site#config=${encoded}`;
-    window.history.replaceState(null, '', `${window.location.pathname}#config=${encoded}`);
 
     try {
       const res = await fetch('/api/portals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify({ config: {
+          companyName: config.companyName,
+          companyLogoPath: config.companyLogoPath,
+          companyUrl: config.companyUrl,
+          primaryColor: config.primaryColor,
+          linkColor: config.linkColor,
+          sourceUrl: config.sourceUrl,
+          source: config.source,
+          service: { corpToken: config.corpToken, swimlane: config.swimlane },
+        }}),
       });
       if (res.ok) {
-        const { url } = await res.json();
-        setShareUrl(url);
+        const { id } = await res.json();
+        const fullUrl = `${window.location.origin}/${id}`;
+        setShareUrl(fullUrl);
+        // Update URL bar to the clean short URL
+        window.history.replaceState(null, '', `/${id}`);
       } else {
-        // API not available (KV not configured) — use hash fallback
         setShareUrl(hashUrl);
+        window.history.replaceState(null, '', `${window.location.pathname}#config=${encoded}`);
       }
     } catch {
       setShareUrl(hashUrl);
+      window.history.replaceState(null, '', `${window.location.pathname}#config=${encoded}`);
     }
 
     setImportedConfig(config);
