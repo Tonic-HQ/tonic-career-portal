@@ -387,17 +387,15 @@ function ImportForm({
           <details className="mb-4 text-sm">
             <summary className="text-indigo-600 font-medium cursor-pointer hover:text-indigo-700 transition-colors">Where do I find these?</summary>
             <div className="mt-2 p-3 bg-slate-50 rounded-xl text-gray-600 leading-relaxed space-y-2">
-              <p>Your <strong>corpToken</strong> and <strong>swimlane</strong> are in your Bullhorn job board configuration. Here's how to find them:</p>
+              <p>Your <strong>corpToken</strong> and <strong>swimlane</strong> are provided by Bullhorn when they enable your corporation for Career Portal access.</p>
+              <p className="text-[13px] font-medium text-gray-700 mt-1">If you don't have these yet:</p>
               <ol className="list-decimal list-inside space-y-1 text-[13px]">
-                <li>In Bullhorn, go to <strong>Menu → Admin → Job Board Setup</strong></li>
-                <li>Select your public job board</li>
-                <li>Look for the <strong>Public API URL</strong> or <strong>Career Portal URL</strong></li>
-                <li>The URL looks like: <code className="bg-white px-1.5 py-0.5 rounded border text-xs">https://public-rest<strong>91</strong>.bullhornstaffing.com/rest-services/<strong>ABC123</strong>/</code></li>
-                <li>The code after <code className="bg-white px-1 py-0.5 rounded border text-xs">/rest-services/</code> is your <strong>corpToken</strong> (e.g., ABC123)</li>
-                <li>The number after <code className="bg-white px-1 py-0.5 rounded border text-xs">public-rest</code> is your <strong>swimlane</strong> (e.g., 91)</li>
+                <li>Contact <strong>Bullhorn Support</strong> and ask them to enable your corporation for Career Portal / public REST API access</li>
+                <li>They'll provide your <strong>corpToken</strong> (a short alphanumeric code like <code className="bg-white px-1.5 py-0.5 rounded border text-xs">ABC123</code>) and <strong>swimlane number</strong> (like <code className="bg-white px-1.5 py-0.5 rounded border text-xs">91</code>)</li>
+                <li>These map to the public API URL: <code className="bg-white px-1.5 py-0.5 rounded border text-xs">https://public-rest<strong>91</strong>.bullhornstaffing.com/rest-services/<strong>ABC123</strong>/</code></li>
               </ol>
-              <p className="text-[13px]">If you already have an OSCP, these are in your <code className="bg-white px-1.5 py-0.5 rounded border text-xs">app.json</code> file under <code className="bg-white px-1.5 py-0.5 rounded border text-xs">service.corpToken</code> and <code className="bg-white px-1.5 py-0.5 rounded border text-xs">service.swimlane</code>.</p>
-              <p className="text-[13px]">Can't find it? Email us at <a href="mailto:support@tonichq.com" className="text-indigo-600 hover:underline">support@tonichq.com</a> and we'll help you track it down.</p>
+              <p className="text-[13px] mt-1">If you already have an OSCP or career portal running, your corpToken and swimlane are in your <code className="bg-white px-1.5 py-0.5 rounded border text-xs">app.json</code> file under <code className="bg-white px-1.5 py-0.5 rounded border text-xs">service.corpToken</code> and <code className="bg-white px-1.5 py-0.5 rounded border text-xs">service.swimlane</code>.</p>
+              <p className="text-[13px]">Need help? Email us at <a href="mailto:support@tonichq.com" className="text-indigo-600 hover:underline">support@tonichq.com</a>.</p>
             </div>
           </details>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
