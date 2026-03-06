@@ -533,15 +533,16 @@ export default function PreviewPage() {
       });
       if (res.ok) {
         const { id } = await res.json();
-        setShareUrl(`${window.location.origin}/${id}`);
+        const fullUrl = `${window.location.origin}/${id}`;
+        setShareUrl(fullUrl);
+        // Update URL bar to the clean short URL (replaceState, no reload)
+        window.history.replaceState(null, '', `/${id}`);
       } else {
         setShareUrl(hashUrl);
       }
     } catch {
       setShareUrl(hashUrl);
     }
-    // Keep builder on /preview — don't change URL to /<id>
-    // The short URL is for sharing, not for the builder's browser
 
     setImportedConfig(config);
     setReady(true);
