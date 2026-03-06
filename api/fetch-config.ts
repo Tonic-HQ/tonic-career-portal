@@ -137,6 +137,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Attempt 3: If we only got app.json (no json5), try to extract colors from custom.css
+  // The oscp-template deploy script injects CSS variables for colors
+  let cssColors: { topBarColor?: string; sideBarColor?: string; linkColor?: string } | null = null;
+  if (source === 'appjson') {
+    try {
+      const cssUrl = `${baseUrl}/static/custom.css`;
+      const cssRes = await fetch(cssUrl, {
+        headers: { 'Accept': 'text/css' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (cssRes.ok) {
+        const cssText = await cssRes.text();
+        // Only parse if it looks like CSS (not an HTML error page)
+        if (!cssText.trim().startsWith('<!') && !cssText.trim().startsWith('<html')) {
+          // Extract --sidebar-color and --link-color from :root
+          const sidebarMatch = cssText.match(/--sidebar-color:\s*(#[0-9a-fA-F]{3,8})/);
+          const linkMatch = cssText.match(/--link-color:\s*(#[0-9a-fA-F]{3,8})/);
+          // Extract .novo-header background-color
+          const headerMatch = cssText.match(/\.novo-header\s*\{[^}]*background-color:\s*(#[0-9a-fA-F]{3,8})/);
+          // Check if header is hidden (removeTopTitleBar)
+          const headerHidden = cssText.includes('.novo-header') && cssText.includes('display: none');
+
+          if (sidebarMatch || linkMatch || headerMatch) {
+            cssColors = {
+              topBarColor: headerHidden ? undefined : headerMatch?.[1],
+              sideBarColor: sidebarMatch?.[1],
+              linkColor: linkMatch?.[1],
+            };
+          }
+        }
+      }
+    } catch {
+      // custom.css not available, that's fine
+    }
+  }
+
   // Normalize the response based on source
   let normalized: any;
 
@@ -195,6 +231,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         swimlane: String(swimlane),
         fields: configData.service?.fields,
       },
+      // Include colors extracted from custom.css if available
+      colors: cssColors ?? undefined,
       additionalJobCriteria: configData.additionalJobCriteria,
       eeoc: configData.eeoc,
       privacyConsent: configData.privacyConsent,

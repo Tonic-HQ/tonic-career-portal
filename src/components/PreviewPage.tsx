@@ -271,7 +271,9 @@ function ImportForm({
         swimlane,
         sourceUrl: rawUrl,
         source: data.source,
-        primaryColor: data.colors?.topBarColor,
+        primaryColor: data.colors?.topBarColor && data.colors.topBarColor !== '#000000'
+          ? data.colors.topBarColor
+          : data.colors?.linkColor,
         linkColor: data.colors?.linkColor,
       });
     } catch {
