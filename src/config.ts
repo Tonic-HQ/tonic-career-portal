@@ -1,3 +1,35 @@
+/** A custom field on the apply form */
+export interface ApplyFormField {
+  /** Display label */
+  label: string;
+  /** Bullhorn entity field name to write to */
+  bullhornField: string;
+  /** Field type */
+  type: 'text' | 'textarea' | 'select' | 'checkbox';
+  /** Required field? */
+  required?: boolean;
+  /** Placeholder text */
+  placeholder?: string;
+  /** Options for select fields */
+  options?: string[];
+}
+
+/** Maps standard apply form fields to Bullhorn candidate fields.
+ *  Keys are our field names, values are Bullhorn Candidate entity field paths.
+ *  Common Bullhorn fields: firstName, lastName, email, phone, companyURL,
+ *  customText1-20, customTextBlock1-5, source, status, category, etc. */
+export interface FieldMappings {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  linkedInUrl?: string;
+  /** Source/attribution field */
+  source?: string;
+  /** Any additional field mappings (our field name → Bullhorn field) */
+  [key: string]: string | undefined;
+}
+
 export interface PortalConfig {
   companyName: string;
   companyLogoUrl: string;
@@ -15,7 +47,11 @@ export interface PortalConfig {
     mode: 'quick' | 'full';
     resumeRequired: boolean;
     showPhone: boolean;
+    /** Additional custom fields to show on the apply form */
+    customFields?: ApplyFormField[];
   };
+  /** Maps apply form fields to Bullhorn candidate entity fields */
+  fieldMappings: FieldMappings;
   privacyPolicyUrl: string;
   googleAnalyticsId: string;
 }
@@ -37,6 +73,15 @@ export const defaultConfig: PortalConfig = {
     mode: 'quick',
     resumeRequired: false,
     showPhone: true,
+    customFields: [],
+  },
+  fieldMappings: {
+    firstName: 'firstName',
+    lastName: 'lastName',
+    email: 'email',
+    phone: 'phone',
+    linkedInUrl: 'companyURL',
+    source: 'source',
   },
   privacyPolicyUrl: '',
   googleAnalyticsId: '',
