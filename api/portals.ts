@@ -5,7 +5,29 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { generateId, isValidId } from '../src/utils/crockford';
+import { randomBytes } from 'crypto';
+
+// --- Crockford Base32 (inlined to avoid src/ import issues in serverless) ---
+const ALPHABET = '0123456789abcdefghjkmnpqrstvwxyz';
+
+function generateId(): string {
+  const bytes = randomBytes(5);
+  let bits = 0n;
+  for (const b of bytes) bits = (bits << 8n) | BigInt(b);
+  let id = '';
+  for (let i = 0; i < 8; i++) {
+    id = ALPHABET[Number(bits & 31n)] + id;
+    bits >>= 5n;
+  }
+  return id;
+}
+
+function isValidId(id: string): boolean {
+  if (!id || id.length < 6 || id.length > 12) return false;
+  const valid = new Set(ALPHABET);
+  return [...id.toLowerCase()].every(c => valid.has(c));
+}
+// --- End Crockford ---
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -31,6 +53,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({
       error: 'Database not configured',
       fallback: true,
+      debug: {
+        hasUrl: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
+        hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      },
     });
   }
 
@@ -59,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           swimlane: swimlane?.toString(),
           company_name: companyName,
           tier: 'preview',
-          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'id',
@@ -69,7 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (error) {
         console.error('Supabase upsert error:', error);
-        return res.status(500).json({ error: 'Failed to save portal config' });
+        return res.status(500).json({ error: 'Failed to save portal config', detail: error.message });
       }
 
       return res.status(200).json({
@@ -78,9 +104,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         created: data.created_at,
         expires: data.expires_at,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Portal creation error:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', detail: err.message });
     }
   }
 
@@ -118,9 +144,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         companyName: data.company_name,
         domain: data.domain,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Portal fetch error:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', detail: err.message });
     }
   }
 
