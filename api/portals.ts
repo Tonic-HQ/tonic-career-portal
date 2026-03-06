@@ -1,64 +1,18 @@
 /**
- * Portal CRUD API — stores portal configs in Vercel KV with Crockford Base32 IDs.
- *
- * POST /api/portals — create a portal, returns { id, url }
- * GET  /api/portals?id=<id> — retrieve a portal config
+ * Portal CRUD API — Supabase-backed.
+ * POST /api/portals — Create a new portal (or update existing)
+ * GET /api/portals?id=<id> — Retrieve portal config
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+import { generateId, isValidId } from '../src/utils/crockford';
 
-// Crockford Base32 — inline to avoid import issues in Vercel serverless
-const ALPHABET = '0123456789abcdefghjkmnpqrstvwxyz';
+function getSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-function encodeCrockford(bytes: Uint8Array): string {
-  let bits = 0;
-  let value = 0;
-  let output = '';
-  for (const byte of bytes) {
-    value = (value << 8) | byte;
-    bits += 8;
-    while (bits >= 5) {
-      bits -= 5;
-      output += ALPHABET[(value >>> bits) & 0x1f];
-    }
-  }
-  if (bits > 0) {
-    output += ALPHABET[(value << (5 - bits)) & 0x1f];
-  }
-  return output;
-}
-
-function generatePortalId(): string {
-  const bytes = new Uint8Array(5);
-  crypto.getRandomValues(bytes);
-  return encodeCrockford(bytes);
-}
-
-function isValidPortalId(str: string): boolean {
-  return /^[0-9a-hjkmnp-tv-z]{6,12}$/i.test(str);
-}
-
-// Lazy-load KV to avoid errors when env vars aren't set
-async function getKV() {
-  try {
-    const { kv } = await import('@vercel/kv');
-    return kv;
-  } catch {
-    return null;
-  }
-}
-
-interface PortalConfig {
-  companyName: string;
-  companyLogoPath?: string;
-  companyUrl?: string;
-  corpToken: string;
-  swimlane: string;
-  sourceUrl?: string;
-  source?: string;
-  primaryColor?: string;
-  linkColor?: string;
-  privacyPolicyUrl?: string;
-  createdAt?: string;
+  if (!url || !key) return null;
+  return createClient(url, key);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -71,87 +25,104 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const store = await getKV();
-  if (!store) {
+  const supabase = getSupabase();
+
+  if (!supabase) {
     return res.status(503).json({
-      error: 'Portal storage not configured. Connect a Vercel KV store to enable short URLs.',
+      error: 'Database not configured',
       fallback: true,
     });
   }
 
-  // GET — retrieve portal config by ID
-  if (req.method === 'GET') {
-    const id = (req.query.id as string)?.toLowerCase();
-    if (!id || !isValidPortalId(id)) {
-      return res.status(400).json({ error: 'Invalid portal ID.' });
-    }
-
-    try {
-      const config = await store.get<PortalConfig>(`portal:${id}`);
-      if (!config) {
-        return res.status(404).json({ error: 'Portal not found.' });
-      }
-      return res.status(200).json(config);
-    } catch (err) {
-      console.error('KV get error:', err);
-      return res.status(500).json({ error: 'Failed to retrieve portal.' });
-    }
-  }
-
-  // POST — create a new portal
   if (req.method === 'POST') {
-    const body = req.body as PortalConfig;
-
-    if (!body?.corpToken || !body?.swimlane) {
-      return res.status(400).json({ error: 'corpToken and swimlane are required.' });
-    }
-
-    if (!body.companyName) {
-      return res.status(400).json({ error: 'companyName is required.' });
-    }
-
-    // Generate unique ID (retry on collision, though astronomically unlikely)
-    let id: string;
-    let attempts = 0;
-    do {
-      id = generatePortalId();
-      const existing = await store.get(`portal:${id}`);
-      if (!existing) break;
-      attempts++;
-    } while (attempts < 5);
-
-    if (attempts >= 5) {
-      return res.status(500).json({ error: 'Failed to generate unique ID.' });
-    }
-
-    const config: PortalConfig = {
-      companyName: body.companyName,
-      companyLogoPath: body.companyLogoPath || '',
-      companyUrl: body.companyUrl || '',
-      corpToken: body.corpToken,
-      swimlane: body.swimlane,
-      sourceUrl: body.sourceUrl || '',
-      source: body.source || '',
-      primaryColor: body.primaryColor || '',
-      linkColor: body.linkColor || '',
-      privacyPolicyUrl: body.privacyPolicyUrl || '',
-      createdAt: new Date().toISOString(),
-    };
-
     try {
-      // Store with 90-day TTL for preview portals
-      await store.set(`portal:${id}`, config, { ex: 90 * 24 * 60 * 60 });
+      const { config, id: existingId } = req.body;
 
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
-      const url = `${protocol}://${host}/${id}`;
+      if (!config || typeof config !== 'object') {
+        return res.status(400).json({ error: 'Missing or invalid config object' });
+      }
 
-      return res.status(201).json({ id, url });
+      const id = existingId && isValidId(existingId) ? existingId : generateId();
+
+      // Extract key fields for indexing
+      const corpToken = config.service?.corpToken || config.corpToken || null;
+      const swimlane = config.service?.swimlane || config.swimlane || null;
+      const companyName = config.companyName || null;
+
+      // Upsert portal
+      const { data, error } = await supabase
+        .from('portals')
+        .upsert({
+          id,
+          config,
+          corp_token: corpToken,
+          swimlane: swimlane?.toString(),
+          company_name: companyName,
+          tier: 'preview',
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase upsert error:', error);
+        return res.status(500).json({ error: 'Failed to save portal config' });
+      }
+
+      return res.status(200).json({
+        id: data.id,
+        url: `/${data.id}`,
+        created: data.created_at,
+        expires: data.expires_at,
+      });
     } catch (err) {
-      console.error('KV set error:', err);
-      return res.status(500).json({ error: 'Failed to store portal.' });
+      console.error('Portal creation error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
-  return res.status(405).json({ error: 'Method not allowed.' });
+  if (req.method === 'GET') {
+    const id = req.query.id as string;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Missing id parameter' });
+    }
+
+    if (!isValidId(id)) {
+      return res.status(400).json({ error: 'Invalid portal ID' });
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('portals')
+        .select('id, config, tier, expires_at, company_name, domain')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        return res.status(404).json({ error: 'Portal not found' });
+      }
+
+      // Check expiry for preview portals
+      if (data.tier === 'preview' && data.expires_at && new Date(data.expires_at) < new Date()) {
+        return res.status(410).json({ error: 'Portal preview has expired' });
+      }
+
+      return res.status(200).json({
+        id: data.id,
+        config: data.config,
+        tier: data.tier,
+        companyName: data.company_name,
+        domain: data.domain,
+      });
+    } catch (err) {
+      console.error('Portal fetch error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }
