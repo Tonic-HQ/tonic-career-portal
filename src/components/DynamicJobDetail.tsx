@@ -115,23 +115,48 @@ export default function DynamicJobDetail() {
   }
 
   if (error || !job) {
+    const config = loadConfig();
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
-          </svg>
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="text-center max-w-lg">
+          <div className="mb-8">
+            <div
+              className="w-24 h-24 rounded-3xl mx-auto flex items-center justify-center shadow-sm border border-gray-100"
+              style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(37,99,235,0.02) 100%)' }}
+            >
+              <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 80 80" stroke="currentColor" strokeWidth="1.5">
+                <rect x="10" y="30" width="60" height="38" rx="6" />
+                <path d="M28 30v-6a4 4 0 014-4h16a4 4 0 014 4v6" />
+                <line x1="10" y1="50" x2="70" y2="50" />
+                <circle cx="40" cy="50" r="3" fill="currentColor" />
+                <line x1="25" y1="35" x2="55" y2="65" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-3">
+            This position is no longer available
+          </h1>
+          <p className="text-gray-500 leading-relaxed mb-8 max-w-sm mx-auto">
+            It may have been filled or the listing has expired. Don't worry — there are more opportunities waiting for you.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                if (window.history.length > 1) window.history.back();
+                else window.location.href = '/';
+              }}
+              className="inline-flex items-center justify-center gap-2 text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg text-sm"
+              style={{ backgroundColor: 'var(--color-primary)', boxShadow: '0 4px 14px -2px rgba(37,99,235,0.3)', minHeight: '48px' }}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Browse Open Positions
+            </button>
+          </div>
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Job not found</h1>
-        <p className="text-sm text-gray-500 mb-6">{error || 'This position may have been filled or removed.'}</p>
-        <button
-          onClick={() => window.history.back()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
-          style={{ backgroundColor: 'var(--color-primary)' }}
-        >
-          ← Back to Jobs
-        </button>
       </div>
     );
   }
