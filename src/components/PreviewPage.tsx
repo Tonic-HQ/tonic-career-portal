@@ -449,6 +449,21 @@ function ImportForm({
             </svg>
           </button>
         </div>
+
+        {/* View Demo */}
+        <div className="text-center pt-2 pb-4">
+          <p className="text-sm text-gray-400 mb-2">Don't have your credentials handy?</p>
+          <a
+            href="/site#config=eyJjb21wYW55TmFtZSI6IlRvbmljIEhRIiwiY29tcGFueVVybCI6Imh0dHBzOi8vdG9uaWNocS5jb20iLCJwcmltYXJ5Q29sb3IiOiIjNGY0NmU1IiwiYWNjZW50Q29sb3IiOiIjZWVmMmZmIiwiY29ycFRva2VuIjoiM2FwdzI5Iiwic3dpbWxhbmUiOiI5MSJ9"
+            className="inline-flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            View a demo site with real jobs
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+        </div>
       </div>
     </div>
   );
