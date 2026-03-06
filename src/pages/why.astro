@@ -318,7 +318,7 @@ import Layout from '../layouts/Layout.astro';
 
     <h3>The OSCP deep dive</h3>
 
-    <p>We cloned the repository, read every component, traced every API call, and catalogued every open issue. Here's what we found:</p>
+    <p>We cloned the repository, read every component, traced every API call, and catalogued every open issue. These stats are pulled live from the <a href="https://github.com/bullhorn/career-portal" target="_blank" rel="noopener" style="color: #4f46e5; text-decoration: underline;">OSCP GitHub repo</a>:</p>
 
     <div class="research-grid">
       <div class="research-card">
@@ -328,13 +328,18 @@ import Layout from '../layouts/Layout.astro';
       </div>
       <div class="research-card">
         <div class="label">Open Issues</div>
-        <div class="value">39 unresolved</div>
+        <div class="value" id="stat-issues">41 unresolved</div>
         <div class="detail">Including broken sort, broken WordPress plugin, and no quick apply.</div>
       </div>
       <div class="research-card">
-        <div class="label">Last Update</div>
-        <div class="value">Sparse</div>
+        <div class="label">Commits (last 6 months)</div>
+        <div class="value" id="stat-commits">2 commits</div>
         <div class="detail">Occasional doc link additions. No feature development.</div>
+      </div>
+      <div class="research-card">
+        <div class="label">Angular Version</div>
+        <div class="value" id="stat-angular">10.2 <span style="font-size: 0.65em; color: #94a3b8;">(current: 19)</span></div>
+        <div class="detail">Five major versions behind. Originally released June 2020.</div>
       </div>
       <div class="research-card">
         <div class="label">Tech Stack</div>
@@ -477,7 +482,7 @@ import Layout from '../layouts/Layout.astro';
         <tr>
           <td class="feature-name">True Cost</td>
           <td class="oscp-cell"><span class="icon-warn">~</span> $500–$1,500/yr (hosting + setup + maintenance + risk)</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> $199 one-time or $249/yr hosted. That's it.</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> $199 one-time or $499/yr hosted. That's it.</td>
         </tr>
       </tbody>
     </table>
@@ -519,4 +524,29 @@ import Layout from '../layouts/Layout.astro';
       </a>
     </div>
   </div>
+
+  <script>
+    // Fetch live OSCP stats from GitHub via our API
+    async function loadOscpStats() {
+      try {
+        const res = await fetch('/api/oscp-stats');
+        if (!res.ok) return;
+        const stats = await res.json();
+
+        const issuesEl = document.getElementById('stat-issues');
+        const commitsEl = document.getElementById('stat-commits');
+        const angularEl = document.getElementById('stat-angular');
+
+        if (issuesEl) issuesEl.textContent = `${stats.openIssues} unresolved`;
+        if (commitsEl) commitsEl.textContent = `${stats.commitsLast6Months} commit${stats.commitsLast6Months !== 1 ? 's' : ''}`;
+        if (angularEl) {
+          const ver = stats.angularVersion.split('.').slice(0, 2).join('.');
+          angularEl.innerHTML = `${ver} <span style="font-size: 0.65em; color: #94a3b8;">(current: ${stats.currentAngularVersion})</span>`;
+        }
+      } catch (e) {
+        // Fallback values already in HTML, silently fail
+      }
+    }
+    loadOscpStats();
+  </script>
 </Layout>
