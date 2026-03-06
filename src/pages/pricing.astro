@@ -146,6 +146,10 @@ import '../styles/global.css';
           </li>
           <li class="flex items-start gap-3 text-sm">
             <svg class="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+            <span>Enterprise-grade security (HTTPS, WAF, security headers)</span>
+          </li>
+          <li class="flex items-start gap-3 text-sm">
+            <svg class="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
             <span>Priority email support</span>
           </li>
         </ul>
@@ -242,6 +246,13 @@ import '../styles/global.css';
           <h3 class="font-semibold text-base mb-2">Do I need a developer to set this up?</h3>
           <p class="text-gray-500 text-sm leading-relaxed">
             No. For Standard and Pro, we handle everything. For Starter, you'll need to upload static files to a web server, but there's no code to write or build pipeline to configure. If you can upload files to a hosting provider, you can set up Starter.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-base mb-2">How do you handle security?</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">
+            Career portals collect candidate PII - names, emails, phone numbers, resumes. Every Tonic-hosted portal runs behind Cloudflare with enforced HTTPS, TLS 1.2+, bot protection, and security headers (CSP, HSTS, referrer policy, permissions policy). API endpoints are no-cache to prevent PII leaking through CDN layers. Many OSCP deployments run on shared hosting without SSL, which means candidate data is transmitted in plaintext. That's a real compliance risk under GDPR and CCPA.
           </p>
         </div>
 
