@@ -277,8 +277,10 @@ function ImportForm({
           ? data.colors.topBarColor
           : data.colors?.linkColor,
         linkColor: data.colors?.linkColor,
-        // Respect the source config's header visibility setting
-        showHeader: data.removeTopTitleBar ? false : true,
+        // Show header only if source has a logo or removeTopTitleBar is explicitly false
+        // config.json5 is build-time only (not served publicly), so we can't always read it.
+        // Default to hiding the header unless there's a logo to show.
+        showHeader: data.removeTopTitleBar === true ? false : !!(data.companyLogoPath),
       });
     } catch {
       setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
@@ -489,8 +491,8 @@ export default function PreviewPage() {
     // Invalidate any cached jobs from a different portal
     invalidateJobCache();
 
-    // Apply colors to DOM
-    applyColorsToDOM(config.primaryColor, config.linkColor);
+    // Don't apply colors to root DOM yet - it bleeds onto the import form page.
+    // Colors will be applied via inline styles on the portal container instead.
 
     // Persist to sessionStorage so job detail pages can restore the config
     try {
@@ -563,6 +565,18 @@ export default function PreviewPage() {
   if (!importedConfig) {
     return <ImportForm onConfigLoaded={activateConfig} />;
   }
+
+  // Apply portal colors only when rendering the portal (not the import form)
+  useEffect(() => {
+    if (importedConfig) {
+      applyColorsToDOM(importedConfig.primaryColor, importedConfig.linkColor);
+    }
+    return () => {
+      // Reset colors when unmounting
+      document.documentElement.style.setProperty('--color-primary', '#2563EB');
+      document.documentElement.style.setProperty('--color-accent', '#10B981');
+    };
+  }, [importedConfig]);
 
   // Config loaded — render the full portal
   return (
