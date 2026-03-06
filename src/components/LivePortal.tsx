@@ -1,14 +1,18 @@
 /**
- * LivePortal — renders the full career portal from a config hash.
+ * LivePortal — renders the full career portal from stored config.
+ *
+ * Two modes:
+ * 1. Clean URL: /<crockford-id> → fetches config from /api/portals?id=<id>
+ * 2. Hash fallback: /site#config=<base64> → decodes config from URL hash
+ *
  * No preview banners, no import forms. Just the site, as if hosted.
- * URL: /site#config=<base64-encoded-json>
  */
 import { useState, useEffect } from 'react';
 import { setConfigOverride, loadConfig } from '../config';
 import { invalidateJobCache } from '../api';
 import JobListPage from './JobListPage';
 
-interface PortalConfigHash {
+interface PortalConfig {
   companyName: string;
   companyLogoPath: string;
   companyUrl: string;
@@ -19,16 +23,50 @@ interface PortalConfigHash {
   privacyPolicyUrl?: string;
 }
 
-function decodeConfig(hash: string): PortalConfigHash | null {
+function decodeHashConfig(hash: string): PortalConfig | null {
   try {
     const json = decodeURIComponent(escape(atob(hash)));
-    return JSON.parse(json) as PortalConfigHash;
+    return JSON.parse(json) as PortalConfig;
   } catch {
     return null;
   }
 }
 
-function DynamicHeader({ config }: { config: PortalConfigHash }) {
+/** Extract portal ID from URL path. Matches Crockford Base32 pattern. */
+function getPortalIdFromPath(): string | null {
+  if (typeof window === 'undefined') return null;
+  const path = window.location.pathname.replace(/^\/|\/$/g, '');
+  // Must look like a Crockford Base32 ID (6-12 chars, valid charset)
+  if (/^[0-9a-hjkmnp-tv-z]{6,12}$/i.test(path)) {
+    return path.toLowerCase();
+  }
+  return null;
+}
+
+function applyPortalConfig(config: PortalConfig) {
+  setConfigOverride({
+    companyName: config.companyName,
+    companyLogoUrl: config.companyLogoPath,
+    companyUrl: config.companyUrl,
+    primaryColor: config.primaryColor || '#2563EB',
+    accentColor: config.linkColor || '#10B981',
+    privacyPolicyUrl: config.privacyPolicyUrl || '',
+    service: {
+      swimlane: config.swimlane,
+      corpToken: config.corpToken,
+      fields: 'id,title,publishedCategory(id,name),address(city,state,countryName),employmentType,salary,salaryUnit,dateLastPublished,publicDescription,isOpen,isPublic,isDeleted',
+    },
+  });
+  invalidateJobCache();
+
+  const root = document.documentElement;
+  if (config.primaryColor) root.style.setProperty('--color-primary', config.primaryColor);
+  if (config.linkColor) root.style.setProperty('--color-accent', config.linkColor);
+
+  document.title = `${config.companyName} — Careers`;
+}
+
+function DynamicHeader({ config }: { config: PortalConfig }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -67,7 +105,6 @@ function DynamicHeader({ config }: { config: PortalConfigHash }) {
           )}
         </a>
 
-        {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-1">
           <span className="text-sm font-medium px-3 py-2 rounded-lg" style={{ color: 'var(--color-primary)', backgroundColor: 'rgba(37,99,235,0.06)' }}>
             All Jobs
@@ -87,7 +124,6 @@ function DynamicHeader({ config }: { config: PortalConfigHash }) {
           )}
         </nav>
 
-        {/* Mobile hamburger */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="sm:hidden flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all"
@@ -105,7 +141,6 @@ function DynamicHeader({ config }: { config: PortalConfigHash }) {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {menuOpen && (
         <div className="sm:hidden border-t border-gray-100 bg-white">
           <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
@@ -133,7 +168,7 @@ function DynamicHeader({ config }: { config: PortalConfigHash }) {
   );
 }
 
-function DynamicFooter({ config }: { config: PortalConfigHash }) {
+function DynamicFooter({ config }: { config: PortalConfig }) {
   const year = new Date().getFullYear();
   return (
     <footer className="bg-white mt-auto">
@@ -160,7 +195,21 @@ function DynamicFooter({ config }: { config: PortalConfigHash }) {
   );
 }
 
-function ErrorState() {
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <svg className="w-8 h-8 animate-spin text-gray-300" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <p className="text-sm text-gray-400">Loading career portal…</p>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message?: string }) {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="text-center max-w-md">
@@ -170,7 +219,7 @@ function ErrorState() {
           </svg>
         </div>
         <h1 className="text-xl font-bold text-gray-900 mb-2">Portal not found</h1>
-        <p className="text-sm text-gray-500 mb-6">This link doesn't contain a valid portal configuration. It may have been truncated or corrupted.</p>
+        <p className="text-sm text-gray-500 mb-6">{message || 'This link doesn\'t contain a valid portal configuration.'}</p>
         <a
           href="/preview"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
@@ -187,63 +236,54 @@ function ErrorState() {
 }
 
 export default function LivePortal() {
-  const [config, setConfig] = useState<PortalConfigHash | null>(null);
-  const [error, setError] = useState(false);
+  const [config, setConfig] = useState<PortalConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Mode 1: Check for Crockford Base32 ID in URL path
+    const portalId = getPortalIdFromPath();
+    if (portalId) {
+      fetchPortalById(portalId);
+      return;
+    }
+
+    // Mode 2: Check for base64 config in URL hash (fallback)
     const hash = window.location.hash.replace('#config=', '');
-    if (!hash) {
-      setError(true);
-      return;
+    if (hash) {
+      const parsed = decodeHashConfig(hash);
+      if (parsed && parsed.corpToken && parsed.swimlane) {
+        applyPortalConfig(parsed);
+        setConfig(parsed);
+        return;
+      }
     }
 
-    const parsed = decodeConfig(hash);
-    if (!parsed || !parsed.corpToken || !parsed.swimlane) {
-      setError(true);
-      return;
-    }
-
-    // Set runtime config override
-    setConfigOverride({
-      companyName: parsed.companyName,
-      companyLogoUrl: parsed.companyLogoPath,
-      companyUrl: parsed.companyUrl,
-      primaryColor: parsed.primaryColor || '#2563EB',
-      accentColor: parsed.linkColor || '#10B981',
-      privacyPolicyUrl: parsed.privacyPolicyUrl || '',
-      service: {
-        swimlane: parsed.swimlane,
-        corpToken: parsed.corpToken,
-        fields: 'id,title,publishedCategory(id,name),address(city,state,countryName),employmentType,salary,salaryUnit,dateLastPublished,publicDescription,isOpen,isPublic,isDeleted',
-      },
-    });
-    invalidateJobCache();
-
-    // Apply colors to DOM
-    const root = document.documentElement;
-    if (parsed.primaryColor) root.style.setProperty('--color-primary', parsed.primaryColor);
-    if (parsed.linkColor) root.style.setProperty('--color-accent', parsed.linkColor);
-
-    // Update page title
-    document.title = `${parsed.companyName} — Careers`;
-
-    setConfig(parsed);
+    setError('No portal configuration found in the URL.');
   }, []);
 
-  if (error) return <ErrorState />;
-
-  if (!config) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <svg className="w-8 h-8 animate-spin text-gray-300" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      </div>
-    );
+  async function fetchPortalById(id: string) {
+    try {
+      const res = await fetch(`/api/portals?id=${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          setError('This portal has expired or doesn\'t exist.');
+          return;
+        }
+        throw new Error(`API error: ${res.status}`);
+      }
+      const data = await res.json() as PortalConfig;
+      applyPortalConfig(data);
+      setConfig(data);
+    } catch (err) {
+      console.error('Failed to load portal:', err);
+      setError('Failed to load portal configuration. Please try again.');
+    }
   }
+
+  if (error) return <ErrorState message={error} />;
+  if (!config) return <LoadingState />;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

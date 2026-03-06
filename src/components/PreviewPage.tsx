@@ -457,7 +457,7 @@ export default function PreviewPage() {
     setReady(true);
   }, []);
 
-  function activateConfig(config: ImportedConfig) {
+  async function activateConfig(config: ImportedConfig) {
     // Set runtime config override so api.ts and loadConfig() use this portal's creds
     setConfigOverride({
       companyName: config.companyName,
@@ -478,11 +478,28 @@ export default function PreviewPage() {
     // Apply colors to DOM
     applyColorsToDOM(config.primaryColor, config.linkColor);
 
-    // Generate shareable URL — points to /site (clean, no preview chrome)
+    // Try to create a stored portal with a clean short URL
+    // Falls back to hash-based URL if the API isn't available
     const encoded = encodeConfig(config);
-    const url = `${window.location.origin}/site#config=${encoded}`;
-    setShareUrl(url);
+    const hashUrl = `${window.location.origin}/site#config=${encoded}`;
     window.history.replaceState(null, '', `${window.location.pathname}#config=${encoded}`);
+
+    try {
+      const res = await fetch('/api/portals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        setShareUrl(url);
+      } else {
+        // API not available (KV not configured) — use hash fallback
+        setShareUrl(hashUrl);
+      }
+    } catch {
+      setShareUrl(hashUrl);
+    }
 
     setImportedConfig(config);
     setReady(true);
