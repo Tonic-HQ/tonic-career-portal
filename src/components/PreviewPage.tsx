@@ -183,12 +183,13 @@ export default function PreviewPage() {
       return;
     }
 
-    const appJsonUrl = `${rawUrl}/app.json`;
-
     try {
-      const res = await fetch(appJsonUrl, { mode: 'cors' });
+      // Use our server-side proxy to avoid CORS issues
+      const proxyUrl = `/api/fetch-config?url=${encodeURIComponent(rawUrl)}`;
+      const res = await fetch(proxyUrl);
       if (!res.ok) {
-        setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
+        const errData = await res.json().catch(() => ({}));
+        setImportError(errData.error || "Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
         setImporting(false);
         return;
       }
@@ -210,17 +211,7 @@ export default function PreviewPage() {
       };
       applyConfig(config);
     } catch (err) {
-      const isCors =
-        err instanceof TypeError &&
-        (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
-      if (isCors) {
-        setCorsBlocked(true);
-        setImportError(
-          "CORS blocked — we can't fetch that URL from your browser. Please enter your details manually below."
-        );
-      } else {
-        setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
-      }
+      setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
     } finally {
       setImporting(false);
     }
