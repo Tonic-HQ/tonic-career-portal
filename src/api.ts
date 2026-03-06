@@ -4,10 +4,10 @@ import { loadConfig } from './config';
 
 export interface SearchParams {
   query?: string;
-  category?: string;
-  state?: string;
-  city?: string;
-  employmentType?: string;
+  categories?: string[];
+  states?: string[];
+  cities?: string[];
+  employmentTypes?: string[];
   sort?: 'date' | 'title';
   page?: number;
   pageSize?: number;
@@ -38,36 +38,37 @@ function normalizeBullhornJob(raw: any): Job {
   };
 }
 
-export async function searchJobs(params: SearchParams): Promise<SearchResult> {
-  const config = loadConfig();
-  if (config.service.corpToken === 'demo') {
-    return searchJobsDemo(params);
-  }
-  return searchJobsBullhorn(params, config);
-}
-
-export async function getJob(id: number): Promise<Job | null> {
-  const config = loadConfig();
-  if (config.service.corpToken === 'demo') {
-    return DEMO_JOBS.find(j => j.id === id) ?? null;
-  }
-  return getJobBullhorn(id, config);
-}
+// Cache all jobs in memory to avoid re-fetching on every filter change
+let _allJobsCache: Job[] | null = null;
+let _allJobsCacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export async function getAllJobs(): Promise<Job[]> {
   const config = loadConfig();
   if (config.service.corpToken === 'demo') {
     return DEMO_JOBS;
   }
+
+  const now = Date.now();
+  if (_allJobsCache && (now - _allJobsCacheTime) < CACHE_TTL) {
+    return _allJobsCache;
+  }
+
   const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
   const url = `${base}/search/JobOrder?query=${encodeURIComponent('(isOpen:1) AND (isDeleted:0)')}&fields=${config.service.fields}&count=500&sort=-dateLastPublished&showTotalMatched=true`;
   const res = await fetch(url);
   const data = await res.json() as { data?: any[] };
-  return (data.data ?? []).map(normalizeBullhornJob);
+  _allJobsCache = (data.data ?? []).map(normalizeBullhornJob);
+  _allJobsCacheTime = now;
+  return _allJobsCache;
 }
 
-function searchJobsDemo(params: SearchParams): SearchResult {
-  let jobs = [...DEMO_JOBS];
+// All filtering happens client-side since Bullhorn's public search API
+// doesn't support nested field filtering (publishedCategory.name, address.state, etc.)
+export async function searchJobs(params: SearchParams): Promise<SearchResult> {
+  let jobs = await getAllJobs();
+
+  // Keyword search
   if (params.query) {
     const q = params.query.toLowerCase();
     jobs = jobs.filter(j =>
@@ -75,41 +76,41 @@ function searchJobsDemo(params: SearchParams): SearchResult {
       j.publicDescription.toLowerCase().includes(q)
     );
   }
-  if (params.category) jobs = jobs.filter(j => j.publishedCategory.name === params.category);
-  if (params.state) jobs = jobs.filter(j => j.address.state === params.state);
-  if (params.city) jobs = jobs.filter(j => j.address.city === params.city);
-  if (params.employmentType) jobs = jobs.filter(j => j.employmentType === params.employmentType);
-  if (params.sort === 'title') jobs.sort((a, b) => a.title.localeCompare(b.title));
-  else jobs.sort((a, b) => b.dateLastPublished - a.dateLastPublished);
+
+  // Multi-select filters — if any values selected, job must match one of them
+  if (params.categories && params.categories.length > 0) {
+    jobs = jobs.filter(j => params.categories!.includes(j.publishedCategory?.name));
+  }
+  if (params.states && params.states.length > 0) {
+    jobs = jobs.filter(j => params.states!.includes(j.address?.state));
+  }
+  if (params.cities && params.cities.length > 0) {
+    jobs = jobs.filter(j => params.cities!.includes(j.address?.city));
+  }
+  if (params.employmentTypes && params.employmentTypes.length > 0) {
+    jobs = jobs.filter(j => params.employmentTypes!.includes(j.employmentType));
+  }
+
+  // Sort
+  if (params.sort === 'title') {
+    jobs.sort((a, b) => a.title.localeCompare(b.title));
+  } else {
+    jobs.sort((a, b) => b.dateLastPublished - a.dateLastPublished);
+  }
+
   const total = jobs.length;
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 20;
-  jobs = jobs.slice((page - 1) * pageSize, page * pageSize);
-  return { jobs, total };
+  const paged = jobs.slice((page - 1) * pageSize, page * pageSize);
+
+  return { jobs: paged, total };
 }
 
-async function searchJobsBullhorn(params: SearchParams, config: ReturnType<typeof loadConfig>): Promise<SearchResult> {
-  const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
-  const start = ((params.page ?? 1) - 1) * (params.pageSize ?? 20);
-  const sort = params.sort === 'title' ? 'title' : '-dateLastPublished';
-
-  let query = '(isOpen:1) AND (isDeleted:0)';
-  if (params.query) query += ` AND (title:${params.query} OR publicDescription:${params.query})`;
-  if (params.category) query += ` AND (publishedCategory.name:"${params.category}")`;
-  if (params.state) query += ` AND (address.state:"${params.state}")`;
-  if (params.city) query += ` AND (address.city:"${params.city}")`;
-  if (params.employmentType) query += ` AND (employmentType:"${params.employmentType}")`;
-
-  const url = `${base}/search/JobOrder?query=${encodeURIComponent(query)}&fields=${config.service.fields}&count=${params.pageSize ?? 20}&start=${start}&sort=${sort}&showTotalMatched=true`;
-  const res = await fetch(url);
-  const data = await res.json() as { data?: any[]; total?: number };
-  return {
-    jobs: (data.data ?? []).map(normalizeBullhornJob),
-    total: data.total ?? 0,
-  };
-}
-
-async function getJobBullhorn(id: number, config: ReturnType<typeof loadConfig>): Promise<Job | null> {
+export async function getJob(id: number): Promise<Job | null> {
+  const config = loadConfig();
+  if (config.service.corpToken === 'demo') {
+    return DEMO_JOBS.find(j => j.id === id) ?? null;
+  }
   const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
   const url = `${base}/query/JobBoardPost?where=(id=${id})&fields=${config.service.fields}`;
   const res = await fetch(url);

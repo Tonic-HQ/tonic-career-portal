@@ -120,43 +120,46 @@ function FilterSection({
   options,
   counts,
   selected,
-  onSelect,
+  onToggle,
 }: {
   title: string;
   options: string[];
   counts: Record<string, number>;
-  selected: string;
-  onSelect: (value: string) => void;
+  selected: string[];
+  onToggle: (value: string) => void;
 }) {
   if (options.length === 0) return null;
   return (
     <div className="mb-6">
       <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">{title}</h3>
       <ul className="space-y-0.5">
-        {options.map((option) => (
-          <li key={option}>
-            <label className="flex items-center gap-2.5 cursor-pointer group py-1 px-1 rounded-md hover:bg-gray-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={selected === option}
-                onChange={() => onSelect(selected === option ? '' : option)}
-                className="w-4 h-4 rounded border-gray-300 cursor-pointer flex-shrink-0"
-                style={{ accentColor: 'var(--color-primary)' }}
-              />
-              <span
-                className={`text-sm flex-1 transition-colors ${
-                  selected === option ? 'font-semibold' : 'text-gray-600 group-hover:text-gray-900'
-                }`}
-                style={selected === option ? { color: 'var(--color-primary)' } : undefined}
-              >
-                {option}
-              </span>
-              {counts[option] != null && (
-                <span className="text-xs text-gray-400 tabular-nums">({counts[option]})</span>
-              )}
-            </label>
-          </li>
-        ))}
+        {options.map((option) => {
+          const isChecked = selected.includes(option);
+          return (
+            <li key={option}>
+              <label className="flex items-center gap-2.5 cursor-pointer group py-1 px-1 rounded-md hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => onToggle(option)}
+                  className="w-4 h-4 rounded border-gray-300 cursor-pointer flex-shrink-0"
+                  style={{ accentColor: 'var(--color-primary)' }}
+                />
+                <span
+                  className={`text-sm flex-1 transition-colors ${
+                    isChecked ? 'font-semibold' : 'text-gray-600 group-hover:text-gray-900'
+                  }`}
+                  style={isChecked ? { color: 'var(--color-primary)' } : undefined}
+                >
+                  {option}
+                </span>
+                {counts[option] != null && (
+                  <span className="text-xs text-gray-400 tabular-nums">({counts[option]})</span>
+                )}
+              </label>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -180,24 +183,24 @@ export default function JobListPage() {
   const [allCities, setAllCities] = useState<string[]>([]);
 
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('');
-  const [state, setState] = useState('');
-  const [city, setCity] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
+  const [states, setStates] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchJobs = useCallback(
-    async (params: { query: string; category: string; state: string; city: string; page: number }) => {
+    async (params: { query: string; categories: string[]; states: string[]; cities: string[]; page: number }) => {
       setLoading(true);
       setError(null);
       try {
         const result = await searchJobs({
           query: params.query || undefined,
-          category: params.category || undefined,
-          state: params.state || undefined,
-          city: params.city || undefined,
+          categories: params.categories.length > 0 ? params.categories : undefined,
+          states: params.states.length > 0 ? params.states : undefined,
+          cities: params.cities.length > 0 ? params.cities : undefined,
           sort: 'date',
           page: params.page,
           pageSize: PAGE_SIZE,
@@ -214,7 +217,7 @@ export default function JobListPage() {
   );
 
   useEffect(() => {
-    fetchJobs({ query, category, state, city, page });
+    fetchJobs({ query, categories, states, cities, page });
     getAllJobs().then((all) => {
       const counts = computeCounts(all);
       setFilterCounts(counts);
@@ -227,12 +230,12 @@ export default function JobListPage() {
 
   useEffect(() => {
     setPage(1);
-    fetchJobs({ query, category, state, city, page: 1 });
+    fetchJobs({ query, categories, states, cities, page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, state, city]);
+  }, [categories, states, cities]);
 
   useEffect(() => {
-    fetchJobs({ query, category, state, city, page });
+    fetchJobs({ query, categories, states, cities, page });
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
@@ -242,20 +245,20 @@ export default function JobListPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      fetchJobs({ query: value, category, state, city, page: 1 });
+      fetchJobs({ query: value, categories, states, cities, page: 1 });
     }, 300);
   }
 
   function clearFilters() {
     setQuery('');
-    setCategory('');
-    setState('');
-    setCity('');
+    setCategories([]);
+    setStates([]);
+    setCities([]);
     setPage(1);
-    fetchJobs({ query: '', category: '', state: '', city: '', page: 1 });
+    fetchJobs({ query: '', categories: [], states: [], cities: [], page: 1 });
   }
 
-  const hasActiveFilters = Boolean(query || category || state || city);
+  const hasActiveFilters = Boolean(query || categories.length || states.length || cities.length);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const filterPanel = (
@@ -287,22 +290,22 @@ export default function JobListPage() {
         title="Filter by Category"
         options={allCategories}
         counts={filterCounts.categories}
-        selected={category}
-        onSelect={setCategory}
+        selected={categories}
+        onToggle={v => { setCategories(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(1); }}
       />
       <FilterSection
         title="Filter by State"
         options={allStates}
         counts={filterCounts.states}
-        selected={state}
-        onSelect={setState}
+        selected={states}
+        onToggle={v => { setStates(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(1); }}
       />
       <FilterSection
         title="Filter by City"
         options={allCities}
         counts={filterCounts.cities}
-        selected={city}
-        onSelect={setCity}
+        selected={cities}
+        onToggle={v => { setCities(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(1); }}
       />
 
       {hasActiveFilters && (
@@ -358,7 +361,7 @@ export default function JobListPage() {
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                {[category, state, city].filter(Boolean).length}
+                {categories.length + states.length + cities.length}
               </span>
             )}
           </button>
