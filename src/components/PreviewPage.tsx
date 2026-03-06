@@ -459,6 +459,17 @@ export default function PreviewPage() {
   const [shareUrl, setShareUrl] = useState('');
   const [ready, setReady] = useState(false);
 
+  // Apply portal colors only when config is loaded (not during import form)
+  useEffect(() => {
+    if (importedConfig) {
+      applyColorsToDOM(importedConfig.primaryColor, importedConfig.linkColor);
+    }
+    return () => {
+      document.documentElement.style.setProperty('--color-primary', '#2563EB');
+      document.documentElement.style.setProperty('--color-accent', '#10B981');
+    };
+  }, [importedConfig]);
+
   // Check for config in URL hash on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -565,18 +576,6 @@ export default function PreviewPage() {
   if (!importedConfig) {
     return <ImportForm onConfigLoaded={activateConfig} />;
   }
-
-  // Apply portal colors only when rendering the portal (not the import form)
-  useEffect(() => {
-    if (importedConfig) {
-      applyColorsToDOM(importedConfig.primaryColor, importedConfig.linkColor);
-    }
-    return () => {
-      // Reset colors when unmounting
-      document.documentElement.style.setProperty('--color-primary', '#2563EB');
-      document.documentElement.style.setProperty('--color-accent', '#10B981');
-    };
-  }, [importedConfig]);
 
   // Config loaded — render the full portal
   return (
