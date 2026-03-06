@@ -97,8 +97,8 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
         aria-hidden="true"
       />
 
-      {/* Modal — full-screen on mobile, centered card on desktop */}
-      <div className="relative bg-white sm:rounded-2xl shadow-2xl w-full sm:max-w-md mx-auto overflow-hidden animate-scale-in h-full sm:h-auto flex flex-col sm:block">
+      {/* Modal — full-screen slide-up on mobile, centered card on desktop */}
+      <div className="relative bg-white sm:rounded-2xl shadow-2xl w-full sm:max-w-md mx-auto overflow-hidden animate-slide-up sm:animate-scale-in h-full sm:h-auto flex flex-col sm:block">
         {/* Header accent bar */}
         <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, var(--color-primary) 0%, #7c3aed 100%)' }} />
 
@@ -112,8 +112,9 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
           </div>
           <button
             onClick={onClose}
-            className="ml-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl p-1.5 transition-all flex-shrink-0"
+            className="ml-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all flex-shrink-0 flex items-center justify-center"
             aria-label="Close modal"
+            style={{ minWidth: '44px', minHeight: '44px' }}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -124,7 +125,7 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose }: Props) 
         <div className="h-px bg-gray-100 mx-6" />
 
         {/* Content */}
-        <div className="p-6 flex-1 overflow-y-auto">
+        <div className="p-6 pb-safe flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {status === 'success' ? (
             <div className="text-center py-6">
               {/* Animated success icon */}

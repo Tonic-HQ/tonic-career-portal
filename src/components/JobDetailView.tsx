@@ -377,16 +377,18 @@ export default function JobDetailView({ job }: Props) {
 
       {/* Mobile sticky Apply footer */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-gray-200 px-4 py-3 pb-safe"
-        style={{ boxShadow: '0 -4px 24px -4px rgba(0,0,0,0.1)' }}
+        className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-gray-200 px-4 pt-3 pb-3 pb-safe"
+        style={{ boxShadow: '0 -4px 24px -4px rgba(0,0,0,0.1)', paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
       >
         <button
+          type="button"
           onClick={() => setIsModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 text-white font-semibold py-3.5 rounded-xl active:scale-[0.98] transition-all"
+          className="w-full flex items-center justify-center gap-2 text-white font-semibold py-3.5 rounded-xl active:scale-[0.98] transition-all cursor-pointer"
           style={{
             backgroundColor: 'var(--color-primary)',
             boxShadow: '0 4px 14px -2px rgba(37,99,235,0.35)',
             minHeight: '52px',
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           {alreadyApplied ? 'Apply Again' : 'Apply Now'}
