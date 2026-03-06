@@ -43,6 +43,7 @@ interface ImportedConfig {
   source?: string;
   primaryColor?: string;
   linkColor?: string;
+  showHeader?: boolean;
 }
 
 function encodeConfig(config: ImportedConfig): string {
@@ -275,6 +276,8 @@ function ImportForm({
           ? data.colors.topBarColor
           : data.colors?.linkColor,
         linkColor: data.colors?.linkColor,
+        // Show header if source has a logo or explicit top bar color
+        showHeader: !!(data.companyLogoPath || (data.colors?.topBarColor && data.colors.topBarColor !== '#000000')),
       });
     } catch {
       setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
@@ -564,7 +567,7 @@ export default function PreviewPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <PreviewBanner config={importedConfig} shareUrl={shareUrl} onReset={handleReset} />
-      <DynamicHeader config={importedConfig} />
+      {importedConfig.showHeader !== false && <DynamicHeader config={importedConfig} />}
       <main className="flex-1 w-full">
         <JobListPage />
       </main>

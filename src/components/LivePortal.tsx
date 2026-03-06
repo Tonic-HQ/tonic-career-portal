@@ -21,6 +21,8 @@ interface PortalConfig {
   primaryColor?: string;
   linkColor?: string;
   privacyPolicyUrl?: string;
+  showHeader?: boolean;
+  service?: { corpToken?: string; swimlane?: string };
 }
 
 function decodeHashConfig(hash: string): PortalConfig | null {
@@ -278,9 +280,22 @@ export default function LivePortal() {
         }
         throw new Error(`API error: ${res.status}`);
       }
-      const data = await res.json() as PortalConfig;
-      applyPortalConfig(data);
-      setConfig(data);
+      const data = await res.json();
+      // API returns { id, config: {...}, tier, ... } — unwrap
+      const raw = data.config || data;
+      const portalConfig: PortalConfig = {
+        companyName: raw.companyName || data.companyName || 'Careers',
+        companyLogoPath: raw.companyLogoPath || '',
+        companyUrl: raw.companyUrl || '',
+        corpToken: raw.service?.corpToken || raw.corpToken || '',
+        swimlane: raw.service?.swimlane || raw.swimlane || '',
+        primaryColor: raw.primaryColor,
+        linkColor: raw.linkColor,
+        privacyPolicyUrl: raw.privacyPolicyUrl,
+        showHeader: raw.showHeader,
+      };
+      applyPortalConfig(portalConfig);
+      setConfig(portalConfig);
     } catch (err) {
       console.error('Failed to load portal:', err);
       setError('Failed to load portal configuration. Please try again.');
@@ -292,7 +307,7 @@ export default function LivePortal() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <DynamicHeader config={config} />
+      {config.showHeader !== false && <DynamicHeader config={config} />}
       <main className="flex-1 w-full">
         <JobListPage />
       </main>
