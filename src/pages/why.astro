@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Why We Built the Tonic Career Portal" description="The story behind the Tonic Career Portal — and why it's time for something better than the Bullhorn OSCP.">
+<Layout title="Why We Built the Tonic Career Portal" description="The story behind the Tonic Career Portal - and why it's time for something better than the Bullhorn OSCP.">
   <style>
     .why-page {
       max-width: 820px;
@@ -302,19 +302,19 @@ import Layout from '../layouts/Layout.astro';
 
     <h2>The problem we kept running into</h2>
 
-    <p>Bullhorn doesn't have a built-in career portal like other ATS vendors. Instead, they offer an open-source Angular application — the <strong>Open Source Career Portal (OSCP)</strong> — that you download, configure, and host yourself.</p>
+    <p>Bullhorn doesn't have a built-in career portal like other ATS vendors. Instead, they offer an open-source Angular application - the <strong>Open Source Career Portal (OSCP)</strong> - that you download, configure, and host yourself.</p>
 
     <p>In theory, it's fine. In practice, it's a constant source of friction for every staffing firm that uses it.</p>
 
-    <p>The OSCP hasn't seen meaningful development in years. Its GitHub issues pile up unanswered. The WordPress plugin throws 403 errors. There's a bug in the compiled JavaScript bundle that breaks the sort feature. And the most common feature request from candidates — <strong>applying without uploading a résumé</strong> — is architecturally impossible because the portal uses Bullhorn's "parse résumé" endpoint, which requires a file.</p>
+    <p>The OSCP hasn't seen meaningful development in years. Its GitHub issues pile up unanswered. The WordPress plugin throws 403 errors. There's a bug in the compiled JavaScript bundle that breaks the sort feature. And the most common feature request from candidates - <strong>applying without uploading a résumé</strong> - is architecturally impossible because the portal uses Bullhorn's "parse résumé" endpoint, which requires a file.</p>
 
     <div class="callout">
-      <p><strong>The moment it clicked:</strong> We realized we were spending more time working around the OSCP's limitations than it would take to build something better from scratch. The entire portal is three API calls — search jobs, get job details, submit an application. That's it.</p>
+      <p><strong>The moment it clicked:</strong> We realized we were spending more time working around the OSCP's limitations than it would take to build something better from scratch. The entire portal is three API calls - search jobs, get job details, submit an application. That's it.</p>
     </div>
 
     <h2>What we did first: research</h2>
 
-    <p>Before writing a single line of code, we dug into the OSCP source code one more time and surveyed the competitive landscape. We already knew the pain points — we wanted to understand what everyone else was charging to solve them, and whether anyone actually had.</p>
+    <p>Before writing a single line of code, we dug into the OSCP source code one more time and surveyed the competitive landscape. We already knew the pain points - we wanted to understand what everyone else was charging to solve them, and whether anyone actually had.</p>
 
     <h3>The OSCP deep dive</h3>
 
@@ -345,14 +345,14 @@ import Layout from '../layouts/Layout.astro';
 
     <h3>Where we fit</h3>
 
-    <p>There are great companies building career sites and marketing platforms in the Bullhorn ecosystem — Haley Marketing, Staffing Future, Shazamme, and others. We know them, we see them at conferences, and they do great work. But they're solving a different problem than we are.</p>
+    <p>There are great companies building career sites and marketing platforms in the Bullhorn ecosystem - Haley Marketing, Staffing Future, Shazamme, and others. We know them, we see them at conferences, and they do great work. But they're solving a different problem than we are.</p>
 
-    <p>Those companies offer full-service marketing, complete website builds, and comprehensive digital strategies. If that's what you need, go talk to them — seriously. They're good at it.</p>
+    <p>Those companies offer full-service marketing, complete website builds, and comprehensive digital strategies. If that's what you need, go talk to them - seriously. They're good at it.</p>
 
-    <p>But if you just need a <strong>career portal</strong> — a clean, modern page where candidates can find and apply for your jobs — you shouldn't have to buy a marketing agency retainer or a full website rebuild to get one. That's the gap we're filling.</p>
+    <p>But if you just need a <strong>career portal</strong> - a clean, modern page where candidates can find and apply for your jobs - you shouldn't have to buy a marketing agency retainer or a full website rebuild to get one. That's the gap we're filling.</p>
 
     <div class="callout">
-      <p><strong>Our thesis:</strong> Bullhorn should have shipped a modern career portal years ago. They didn't, so we built what it should have been — fast, mobile-friendly, and priced so every staffing firm can afford one. Not a marketing platform, not a website builder. Just the career portal, done right.</p>
+      <p><strong>Our thesis:</strong> Bullhorn should have shipped a modern career portal years ago. They didn't, so we built what it should have been - fast, mobile-friendly, and priced so every staffing firm can afford one. Not a marketing platform, not a website builder. Just the career portal, done right.</p>
     </div>
 
     <h2>The hidden cost of "free"</h2>
@@ -368,14 +368,14 @@ import Layout from '../layouts/Layout.astro';
     </div>
 
     <div class="warning-callout callout">
-      <p><strong>Ongoing maintenance:</strong> When something breaks — and it does — someone has to debug an Angular application built on a proprietary UI library. That's not your average IT person's skill set. Every support ticket costs time and money.</p>
+      <p><strong>Ongoing maintenance:</strong> When something breaks - and it does - someone has to debug an Angular application built on a proprietary UI library. That's not your average IT person's skill set. Every support ticket costs time and money.</p>
     </div>
 
     <div class="red-callout callout">
-      <p><strong>Security risk:</strong> This is the one nobody talks about. The OSCP collects candidate personally identifiable information — names, email addresses, phone numbers, résumés. If you're hosting this on a shared GoDaddy account with no SSL certificate, no WAF, no security headers, you're transmitting PII in plaintext. That's not just bad practice — it's a compliance liability. GDPR, CCPA, and basic data protection standards require encrypted transmission of personal data. A "free" portal that exposes your candidates' information is a lawsuit waiting to happen.</p>
+      <p><strong>Security risk:</strong> This is the one nobody talks about. The OSCP collects candidate personally identifiable information - names, email addresses, phone numbers, résumés. If you're hosting this on a shared GoDaddy account with no SSL certificate, no WAF, no security headers, you're transmitting PII in plaintext. That's not just bad practice - it's a compliance liability. GDPR, CCPA, and basic data protection standards require encrypted transmission of personal data. A "free" portal that exposes your candidates' information is a lawsuit waiting to happen.</p>
     </div>
 
-    <p>When you add it up, the OSCP costs most firms <strong>$500-1,500 in the first year</strong> between hosting, setup time, and maintenance — plus the ongoing risk of running an unmaintained application that handles sensitive data.</p>
+    <p>When you add it up, the OSCP costs most firms <strong>$500-1,500 in the first year</strong> between hosting, setup time, and maintenance - plus the ongoing risk of running an unmaintained application that handles sensitive data.</p>
 
     <hr class="divider" />
 
@@ -397,7 +397,7 @@ import Layout from '../layouts/Layout.astro';
         <tr>
           <td class="feature-name">Quick Apply</td>
           <td class="oscp-cell"><span class="icon-no">✗</span> Résumé upload required for every application</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> Name + email — done. No file needed.</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> Name + email - done. No file needed.</td>
         </tr>
         <tr>
           <td class="feature-name">Mobile Experience</td>
@@ -417,7 +417,7 @@ import Layout from '../layouts/Layout.astro';
         <tr>
           <td class="feature-name">Visual Theming</td>
           <td class="oscp-cell"><span class="icon-no">✗</span> Edit JSON, rebuild Angular app, redeploy</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> Admin page with live preview — colors, fonts, logo, no code</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> Admin page with live preview - colors, fonts, logo, no code</td>
         </tr>
         <tr>
           <td class="feature-name">Custom Fonts</td>
@@ -437,17 +437,17 @@ import Layout from '../layouts/Layout.astro';
         <tr>
           <td class="feature-name">WordPress Integration</td>
           <td class="oscp-cell"><span class="icon-no">✗</span> Plugin exists but throws 403 errors</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> Embed script works on WordPress, Squarespace, Wix — anything</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> Embed script works on WordPress, Squarespace, Wix - anything</td>
         </tr>
         <tr>
           <td class="feature-name">Divisional Portals</td>
           <td class="oscp-cell"><span class="icon-no">✗</span> Fork the entire app per division</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> One config change — different branding and filters per division</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> One config change - different branding and filters per division</td>
         </tr>
         <tr>
           <td class="feature-name">Full API Access</td>
-          <td class="oscp-cell"><span class="icon-no">✗</span> Public API only — limited fields</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> Public or full REST API — read and write any field</td>
+          <td class="oscp-cell"><span class="icon-no">✗</span> Public API only - limited fields</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> Public or full REST API - read and write any field</td>
         </tr>
         <tr>
           <td class="feature-name">Email Notifications</td>
@@ -466,8 +466,8 @@ import Layout from '../layouts/Layout.astro';
         </tr>
         <tr>
           <td class="feature-name">Page Speed</td>
-          <td class="oscp-cell"><span class="icon-warn">~</span> Angular SPA — full framework download</td>
-          <td class="tonic-cell"><span class="icon-yes">✓</span> Static HTML — sub-second loads, minimal JavaScript</td>
+          <td class="oscp-cell"><span class="icon-warn">~</span> Angular SPA - full framework download</td>
+          <td class="tonic-cell"><span class="icon-yes">✓</span> Static HTML - sub-second loads, minimal JavaScript</td>
         </tr>
         <tr>
           <td class="feature-name">Migration Effort</td>
@@ -484,7 +484,7 @@ import Layout from '../layouts/Layout.astro';
 
     <h2>Instant migration</h2>
 
-    <p>Every OSCP deployment has a public <code>app.json</code> configuration file. We built a tool that reads it and generates a preview of your career portal on Tonic — with your actual jobs, your branding, your configuration — in seconds.</p>
+    <p>Every OSCP deployment has a public <code>app.json</code> configuration file. We built a tool that reads it and generates a preview of your career portal on Tonic - with your actual jobs, your branding, your configuration - in seconds.</p>
 
     <p>No signup. No credit card. No sales call. Just paste your URL and see the difference.</p>
 
