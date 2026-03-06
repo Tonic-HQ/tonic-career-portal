@@ -42,6 +42,33 @@ export const defaultConfig: PortalConfig = {
   googleAnalyticsId: '',
 };
 
+// Runtime override — set by preview page when loading from URL hash
+let _runtimeOverride: Partial<PortalConfig> | null = null;
+
+export function setConfigOverride(override: Partial<PortalConfig> | null) {
+  _runtimeOverride = override;
+  // Invalidate job cache when config changes
+  if (typeof window !== 'undefined') {
+    (window as any).__tonicJobCacheInvalid = true;
+  }
+}
+
+export function getConfigOverride(): Partial<PortalConfig> | null {
+  return _runtimeOverride;
+}
+
 export function loadConfig(): PortalConfig {
-  return defaultConfig;
+  if (!_runtimeOverride) return defaultConfig;
+  return {
+    ...defaultConfig,
+    ..._runtimeOverride,
+    service: {
+      ...defaultConfig.service,
+      ...(_runtimeOverride.service ?? {}),
+    },
+    applyForm: {
+      ...defaultConfig.applyForm,
+      ...(_runtimeOverride.applyForm ?? {}),
+    },
+  };
 }

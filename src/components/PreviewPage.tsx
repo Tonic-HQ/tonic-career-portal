@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { setConfigOverride, loadConfig } from '../config';
+import { invalidateJobCache } from '../api';
+import JobListPage from './JobListPage';
 
 interface ProxyResponse {
   source: 'tonic-templater' | 'oscp-appjson';
@@ -30,16 +33,6 @@ interface ProxyResponse {
   };
 }
 
-interface PreviewJob {
-  id: number;
-  title: string;
-  publishedCategory?: { id: number; name: string };
-  address?: { city?: string; state?: string };
-  employmentType?: string;
-  dateLastPublished?: number;
-  publicDescription?: string;
-}
-
 interface ImportedConfig {
   companyName: string;
   companyLogoPath: string;
@@ -50,67 +43,6 @@ interface ImportedConfig {
   source?: string;
   primaryColor?: string;
   linkColor?: string;
-}
-
-function formatCardDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function PreviewJobCard({ job }: { job: PreviewJob }) {
-  const loc =
-    job.address?.state === 'Remote'
-      ? 'Remote'
-      : [job.address?.city, job.address?.state].filter(Boolean).join(', ');
-  const desc = stripHtml(job.publicDescription ?? '');
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-semibold text-blue-600 leading-snug">{job.title}</h3>
-          {job.publishedCategory?.name && (
-            <p className="text-sm mt-0.5 text-blue-500/70">{job.publishedCategory.name}</p>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {loc && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-600 whitespace-nowrap">
-              <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {loc}
-            </span>
-          )}
-          {job.employmentType && (
-            <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-600 whitespace-nowrap">
-              {job.employmentType}
-            </span>
-          )}
-          {job.dateLastPublished && (
-            <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-              {formatCardDate(job.dateLastPublished)}
-            </span>
-          )}
-        </div>
-      </div>
-      {desc && <p className="mt-2 text-sm text-gray-500 leading-relaxed line-clamp-2">{desc}</p>}
-    </div>
-  );
-}
-
-async function fetchJobsForPreview(corpToken: string, swimlane: string): Promise<PreviewJob[]> {
-  const base = `https://public-rest${swimlane}.bullhornstaffing.com:443/rest-services/${corpToken}`;
-  const fields = 'id,title,publishedCategory(id,name),address(city,state),employmentType,dateLastPublished,publicDescription';
-  const url = `${base}/search/JobOrder?query=${encodeURIComponent('(isOpen:1) AND (isDeleted:0)')}&fields=${fields}&count=20&sort=-dateLastPublished&showTotalMatched=true`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch jobs');
-  const data = await res.json() as { data?: PreviewJob[] };
-  return data.data ?? [];
 }
 
 function encodeConfig(config: ImportedConfig): string {
@@ -126,74 +58,195 @@ function decodeConfig(hash: string): ImportedConfig | null {
   }
 }
 
-export default function PreviewPage() {
+function applyColorsToDOM(primaryColor?: string, linkColor?: string) {
+  const root = document.documentElement;
+  if (primaryColor) root.style.setProperty('--color-primary', primaryColor);
+  if (linkColor) root.style.setProperty('--color-accent', linkColor);
+}
+
+/** Thin preview banner shown above the full portal */
+function PreviewBanner({
+  config,
+  shareUrl,
+  onReset,
+}: {
+  config: ImportedConfig;
+  shareUrl: string;
+  onReset: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  function copyLink() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div
+      className="sticky top-0 z-50 px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b"
+      style={{
+        background: 'linear-gradient(90deg, rgba(37,99,235,0.08) 0%, rgba(37,99,235,0.04) 100%)',
+        borderColor: 'rgba(37,99,235,0.12)',
+      }}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        />
+        <p className="text-sm font-medium text-gray-700 truncate">
+          Preview of <span className="font-semibold">{config.companyName}</span>
+          {config.source === 'tonic-templater' && (
+            <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+              Tonic Config
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={onReset}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-500 transition-all hover:bg-gray-50"
+        >
+          ← Try Another
+        </button>
+        {shareUrl && (
+          <button
+            onClick={copyLink}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-semibold transition-all hover:bg-blue-50"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            {copied ? (
+              <>
+                <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy Link
+              </>
+            )}
+          </button>
+        )}
+        <a
+          href="/"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        >
+          Get Started →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/** Dynamic header that mirrors Header.astro but uses runtime config */
+function DynamicHeader({ config }: { config: ImportedConfig }) {
+  return (
+    <header
+      className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-10 z-40"
+      style={{ boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05), 0 1px 2px -1px rgba(0,0,0,0.04)' }}
+    >
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <a href="#" className="flex items-center gap-3 group min-w-0" onClick={e => e.preventDefault()}>
+          {config.companyLogoPath ? (
+            <img src={config.companyLogoPath} alt={config.companyName + ' logo'} className="h-8 w-auto flex-shrink-0" />
+          ) : (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:shadow-md"
+                style={{ background: `linear-gradient(135deg, ${config.primaryColor || 'var(--color-primary)'} 0%, #1d4ed8 100%)` }}
+              >
+                <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                </svg>
+              </div>
+              <div className="flex flex-col leading-none min-w-0">
+                <span className="font-bold text-gray-900 text-[15px] tracking-tight transition-colors group-hover:text-blue-600 truncate max-w-[160px] sm:max-w-none">
+                  {config.companyName}
+                </span>
+                <span className="text-[9px] font-semibold text-gray-400 tracking-[0.12em] uppercase mt-0.5">
+                  Careers
+                </span>
+              </div>
+            </div>
+          )}
+        </a>
+        <nav className="hidden sm:flex items-center gap-1">
+          <a href="#" onClick={e => e.preventDefault()} className="text-sm font-medium text-gray-500 hover:text-blue-600 px-3 py-2 rounded-lg transition-all hover:bg-blue-50">
+            All Jobs
+          </a>
+          {config.companyUrl && (
+            <a
+              href={config.companyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-gray-500 hover:text-blue-600 px-3 py-2 rounded-lg transition-all hover:bg-blue-50 inline-flex items-center gap-1.5"
+            >
+              Company Site
+              <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/** Dynamic footer */
+function DynamicFooter({ config }: { config: ImportedConfig }) {
+  const year = new Date().getFullYear();
+  return (
+    <footer className="bg-white mt-auto">
+      <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent 0%, #e2e8f0 30%, #cbd5e1 50%, #e2e8f0 70%, transparent 100%)' }} />
+      <div className="max-w-6xl mx-auto px-4 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p className="text-sm text-gray-400 font-light">
+          © {year} {config.companyName}. All rights reserved.
+        </p>
+        <span className="flex items-center gap-1.5 text-sm text-gray-400">
+          Powered by{' '}
+          <a href="https://tonichq.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-gray-500 hover:text-blue-600 transition-colors">
+            Tonic
+          </a>
+        </span>
+      </div>
+    </footer>
+  );
+}
+
+/** Import form — shown when no config is loaded */
+function ImportForm({
+  onConfigLoaded,
+}: {
+  onConfigLoaded: (config: ImportedConfig) => void;
+}) {
   const [urlInput, setUrlInput] = useState('');
   const [corpTokenInput, setCorpTokenInput] = useState('');
   const [swimlaneInput, setSwimlaneInput] = useState('');
   const [companyNameInput, setCompanyNameInput] = useState('');
-
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
-  const [corsBlocked, setCorsBlocked] = useState(false);
-
-  const [importedConfig, setImportedConfig] = useState<ImportedConfig | null>(null);
-  const [previewJobs, setPreviewJobs] = useState<PreviewJob[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
-  const [jobsError, setJobsError] = useState('');
-  const [totalJobs, setTotalJobs] = useState<number | null>(null);
-
-  const [shareUrl, setShareUrl] = useState('');
-  const [shareUrlCopied, setShareUrlCopied] = useState(false);
-
-  // Load config from hash on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hash = window.location.hash.replace('#config=', '');
-    if (hash) {
-      const config = decodeConfig(hash);
-      if (config) {
-        setImportedConfig(config);
-        setCorpTokenInput(config.corpToken);
-        setSwimlaneInput(config.swimlane);
-        setCompanyNameInput(config.companyName);
-        loadPreviewJobs(config.corpToken, config.swimlane);
-      }
-    }
-  }, []);
-
-  async function loadPreviewJobs(corpToken: string, swimlane: string) {
-    setJobsLoading(true);
-    setJobsError('');
-    try {
-      const base = `https://public-rest${swimlane}.bullhornstaffing.com:443/rest-services/${corpToken}`;
-      const fields = 'id,title,publishedCategory(id,name),address(city,state),employmentType,dateLastPublished,publicDescription';
-      const url = `${base}/search/JobOrder?query=${encodeURIComponent('(isOpen:1) AND (isDeleted:0)')}&fields=${fields}&count=20&sort=-dateLastPublished&showTotalMatched=true`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Bullhorn API error');
-      const data = await res.json() as { data?: PreviewJob[]; total?: number };
-      setPreviewJobs(data.data ?? []);
-      setTotalJobs(data.total ?? data.data?.length ?? 0);
-    } catch {
-      setJobsError('Could not load jobs from this portal. Check your corpToken and swimlane.');
-    } finally {
-      setJobsLoading(false);
-    }
-  }
 
   async function handleUrlImport() {
     setImporting(true);
     setImportError('');
-    setCorsBlocked(false);
-
     const rawUrl = urlInput.trim().replace(/\/$/, '');
     if (!rawUrl) {
       setImportError('Please enter a URL.');
       setImporting(false);
       return;
     }
-
     try {
-      // Use our server-side proxy to avoid CORS issues
       const proxyUrl = `/api/fetch-config?url=${encodeURIComponent(rawUrl)}`;
       const res = await fetch(proxyUrl);
       if (!res.ok) {
@@ -202,7 +255,7 @@ export default function PreviewPage() {
         setImporting(false);
         return;
       }
-      const data = await res.json() as ProxyResponse;
+      const data = (await res.json()) as ProxyResponse;
       const corpToken = data.service?.corpToken;
       const swimlane = data.service?.swimlane;
       if (!corpToken || !swimlane) {
@@ -210,7 +263,7 @@ export default function PreviewPage() {
         setImporting(false);
         return;
       }
-      const config: ImportedConfig = {
+      onConfigLoaded({
         companyName: data.companyName ?? 'Unknown Company',
         companyLogoPath: data.companyLogoPath ?? '',
         companyUrl: data.companyUrl ?? rawUrl,
@@ -220,9 +273,8 @@ export default function PreviewPage() {
         source: data.source,
         primaryColor: data.colors?.topBarColor,
         linkColor: data.colors?.linkColor,
-      };
-      applyConfig(config);
-    } catch (err) {
+      });
+    } catch {
       setImportError("Could not reach that URL. Make sure it's a Bullhorn Career Portal.");
     } finally {
       setImporting(false);
@@ -237,52 +289,27 @@ export default function PreviewPage() {
       setImportError('Please enter both a corpToken and swimlane number.');
       return;
     }
-    const config: ImportedConfig = {
+    onConfigLoaded({
       companyName,
       companyLogoPath: '',
       companyUrl: '',
       corpToken,
       swimlane,
       sourceUrl: '',
-    };
-    applyConfig(config);
-  }
-
-  function applyConfig(config: ImportedConfig) {
-    setImportedConfig(config);
-    setImportError('');
-    setCorsBlocked(false);
-
-    // Generate shareable URL
-    const encoded = encodeConfig(config);
-    const url = `${window.location.origin}${window.location.pathname}#config=${encoded}`;
-    setShareUrl(url);
-    window.history.replaceState(null, '', `#config=${encoded}`);
-
-    loadPreviewJobs(config.corpToken, config.swimlane);
-  }
-
-  function copyShareUrl() {
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      setShareUrlCopied(true);
-      setTimeout(() => setShareUrlCopied(false), 2000);
     });
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero section */}
+      {/* Hero */}
       <div
         className="relative overflow-hidden border-b border-gray-100"
-        style={{
-          background: 'linear-gradient(180deg, rgba(239,246,255,0.9) 0%, rgba(248,250,252,0) 100%)',
-        }}
+        style={{ background: 'linear-gradient(180deg, rgba(239,246,255,0.9) 0%, rgba(248,250,252,0) 100%)' }}
       >
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
-            backgroundImage:
-              'linear-gradient(var(--color-primary) 1px, transparent 1px), linear-gradient(90deg, var(--color-primary) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(var(--color-primary) 1px, transparent 1px), linear-gradient(90deg, var(--color-primary) 1px, transparent 1px)',
             backgroundSize: '48px 48px',
           }}
         />
@@ -301,12 +328,12 @@ export default function PreviewPage() {
             See your jobs on Tonic
           </h1>
           <p className="text-lg text-gray-500 font-light leading-relaxed max-w-xl mx-auto">
-            Paste your career portal URL and see an instant preview with your real jobs.
+            Paste your career portal URL and see a fully working preview — your real jobs, your brand, live in seconds.
           </p>
         </div>
       </div>
 
-      {/* Import form */}
+      {/* Form */}
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* URL import */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-4">
@@ -341,13 +368,8 @@ export default function PreviewPage() {
               )}
             </button>
           </div>
-
           {importError && (
-            <div
-              className={`mt-3 p-3.5 rounded-xl text-sm flex items-start gap-2.5 ${
-                corsBlocked ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-red-50 border border-red-200 text-red-700'
-              }`}
-            >
+            <div className="mt-3 p-3.5 rounded-xl text-sm flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700">
               <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -357,16 +379,12 @@ export default function PreviewPage() {
         </div>
 
         {/* Manual entry */}
-        <div className={`bg-white rounded-2xl border shadow-sm p-6 mb-6 transition-all ${corsBlocked ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200'}`}>
-          <h2 className="text-base font-bold text-gray-900 mb-1">
-            {corsBlocked ? '↓ Enter your details manually' : 'Or enter manually'}
-          </h2>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <h2 className="text-base font-bold text-gray-900 mb-1">Or enter manually</h2>
           <p className="text-sm text-gray-500 mb-4">Your Bullhorn corpToken and swimlane number</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Company Name
-              </label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Company Name</label>
               <input
                 type="text"
                 value={companyNameInput}
@@ -415,125 +433,98 @@ export default function PreviewPage() {
             </svg>
           </button>
         </div>
-
-        {/* Preview area */}
-        {importedConfig && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Preview banner */}
-            <div
-              className="px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-              style={{ background: 'linear-gradient(90deg, rgba(37,99,235,0.08) 0%, rgba(37,99,235,0.04) 100%)', borderBottom: '1px solid rgba(37,99,235,0.12)' }}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: 'var(--color-primary)', animation: 'pulse-dot 2s ease-in-out infinite' }}
-                />
-                <p className="text-sm font-medium text-gray-700 truncate">
-                  Preview of <span className="font-semibold">{importedConfig.companyName}</span> on Tonic
-                  {importedConfig.source === 'tonic-templater' && (
-                    <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Tonic Config</span>
-                  )}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {shareUrl && (
-                  <button
-                    onClick={copyShareUrl}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-semibold transition-all hover:bg-blue-50"
-                    style={{ color: 'var(--color-primary)' }}
-                  >
-                    {shareUrlCopied ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy link
-                      </>
-                    )}
-                  </button>
-                )}
-                <a
-                  href="/"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
-                >
-                  Like what you see? Get Started →
-                </a>
-              </div>
-            </div>
-
-            {/* Preview content */}
-            <div className="p-5">
-              {/* Company header */}
-              <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
-                {importedConfig.companyLogoPath ? (
-                  <img
-                    src={importedConfig.companyLogoPath}
-                    alt={importedConfig.companyName}
-                    className="h-8 w-auto"
-                  />
-                ) : (
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                    style={{ backgroundColor: 'var(--color-primary)' }}
-                  >
-                    {importedConfig.companyName[0]}
-                  </div>
-                )}
-                <div>
-                  <p className="font-bold text-gray-900">{importedConfig.companyName}</p>
-                  <p className="text-xs text-gray-400">
-                    {totalJobs != null ? `${totalJobs} open position${totalJobs !== 1 ? 's' : ''}` : 'Loading…'}
-                  </p>
-                </div>
-              </div>
-
-              {jobsLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <div className="h-4 skeleton-shimmer rounded w-2/3 mb-1.5" />
-                      <div className="h-3 skeleton-shimmer rounded w-1/4 mb-3" />
-                      <div className="h-3 skeleton-shimmer rounded w-full mb-1" />
-                      <div className="h-3 skeleton-shimmer rounded w-4/5" />
-                    </div>
-                  ))}
-                </div>
-              ) : jobsError ? (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {jobsError}
-                </div>
-              ) : previewJobs.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <p className="text-sm">No open positions found for this portal.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {previewJobs.map((job) => (
-                    <PreviewJobCard key={job.id} job={job} />
-                  ))}
-                  {totalJobs != null && totalJobs > previewJobs.length && (
-                    <p className="text-center text-sm text-gray-400 pt-2">
-                      Showing {previewJobs.length} of {totalJobs} positions
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+    </div>
+  );
+}
+
+export default function PreviewPage() {
+  const [importedConfig, setImportedConfig] = useState<ImportedConfig | null>(null);
+  const [shareUrl, setShareUrl] = useState('');
+  const [ready, setReady] = useState(false);
+
+  // Check for config in URL hash on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash.replace('#config=', '');
+    if (hash) {
+      const config = decodeConfig(hash);
+      if (config) {
+        activateConfig(config);
+        return;
+      }
+    }
+    setReady(true);
+  }, []);
+
+  function activateConfig(config: ImportedConfig) {
+    // Set runtime config override so api.ts and loadConfig() use this portal's creds
+    setConfigOverride({
+      companyName: config.companyName,
+      companyLogoUrl: config.companyLogoPath,
+      companyUrl: config.companyUrl,
+      primaryColor: config.primaryColor || '#2563EB',
+      accentColor: config.linkColor || '#10B981',
+      service: {
+        swimlane: config.swimlane,
+        corpToken: config.corpToken,
+        fields: 'id,title,publishedCategory(id,name),address(city,state,countryName),employmentType,salary,salaryUnit,dateLastPublished,publicDescription,isOpen,isPublic,isDeleted',
+      },
+    });
+
+    // Invalidate any cached jobs from a different portal
+    invalidateJobCache();
+
+    // Apply colors to DOM
+    applyColorsToDOM(config.primaryColor, config.linkColor);
+
+    // Generate shareable URL
+    const encoded = encodeConfig(config);
+    const url = `${window.location.origin}${window.location.pathname}#config=${encoded}`;
+    setShareUrl(url);
+    window.history.replaceState(null, '', `#config=${encoded}`);
+
+    setImportedConfig(config);
+    setReady(true);
+  }
+
+  function handleReset() {
+    setConfigOverride(null);
+    invalidateJobCache();
+    setImportedConfig(null);
+    setShareUrl('');
+    window.history.replaceState(null, '', window.location.pathname);
+    // Reset colors
+    document.documentElement.style.setProperty('--color-primary', '#2563EB');
+    document.documentElement.style.setProperty('--color-accent', '#10B981');
+  }
+
+  if (!ready) {
+    // Loading state while checking URL hash
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <svg className="w-8 h-8 animate-spin text-gray-300" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+    );
+  }
+
+  // No config yet — show the import form
+  if (!importedConfig) {
+    return <ImportForm onConfigLoaded={activateConfig} />;
+  }
+
+  // Config loaded — render the full portal
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <PreviewBanner config={importedConfig} shareUrl={shareUrl} onReset={handleReset} />
+      <DynamicHeader config={importedConfig} />
+      <main className="flex-1 w-full">
+        <JobListPage />
+      </main>
+      <DynamicFooter config={importedConfig} />
     </div>
   );
 }

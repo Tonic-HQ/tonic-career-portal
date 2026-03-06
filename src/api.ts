@@ -41,7 +41,14 @@ function normalizeBullhornJob(raw: any): Job {
 // Cache all jobs in memory to avoid re-fetching on every filter change
 let _allJobsCache: Job[] | null = null;
 let _allJobsCacheTime = 0;
+let _allJobsCacheKey = ''; // track which corpToken+swimlane the cache is for
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+export function invalidateJobCache() {
+  _allJobsCache = null;
+  _allJobsCacheTime = 0;
+  _allJobsCacheKey = '';
+}
 
 export async function getAllJobs(): Promise<Job[]> {
   const config = loadConfig();
@@ -49,8 +56,17 @@ export async function getAllJobs(): Promise<Job[]> {
     return DEMO_JOBS;
   }
 
+  const cacheKey = `${config.service.corpToken}:${config.service.swimlane}`;
   const now = Date.now();
-  if (_allJobsCache && (now - _allJobsCacheTime) < CACHE_TTL) {
+
+  // Invalidate if config changed or window flag set
+  if (typeof window !== 'undefined' && (window as any).__tonicJobCacheInvalid) {
+    _allJobsCache = null;
+    _allJobsCacheTime = 0;
+    (window as any).__tonicJobCacheInvalid = false;
+  }
+
+  if (_allJobsCache && (now - _allJobsCacheTime) < CACHE_TTL && _allJobsCacheKey === cacheKey) {
     return _allJobsCache;
   }
 
@@ -60,6 +76,7 @@ export async function getAllJobs(): Promise<Job[]> {
   const data = await res.json() as { data?: any[] };
   _allJobsCache = (data.data ?? []).map(normalizeBullhornJob);
   _allJobsCacheTime = now;
+  _allJobsCacheKey = cacheKey;
   return _allJobsCache;
 }
 
