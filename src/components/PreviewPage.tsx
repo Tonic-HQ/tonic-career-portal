@@ -480,6 +480,11 @@ export default function PreviewPage() {
     // Apply colors to DOM
     applyColorsToDOM(config.primaryColor, config.linkColor);
 
+    // Persist to sessionStorage so job detail pages can restore the config
+    try {
+      sessionStorage.setItem('tonic_portal_config', JSON.stringify(config));
+    } catch { /* quota exceeded or private browsing */ }
+
     // Try to create a stored portal with a clean short URL
     // Falls back to hash-based URL if the API isn't available
     const encoded = encodeConfig(config);

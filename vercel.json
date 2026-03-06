@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/jobs/:id(\\d+)",
+      "destination": "/job"
+    },
+    {
       "source": "/:id([0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{6,12})",
       "destination": "/portal"
     }

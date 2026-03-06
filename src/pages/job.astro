@@ -1,0 +1,36 @@
+---
+/**
+ * Fallback job detail page — served via Vercel rewrite when
+ * a statically-generated /jobs/[id] page doesn't exist.
+ * Fetches the job client-side using runtime config.
+ */
+import DynamicJobDetail from '../components/DynamicJobDetail';
+import { defaultConfig } from '../config';
+import '../styles/global.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Details</title>
+  <meta name="description" content="View job details and apply." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style define:vars={{ primaryColor: defaultConfig.primaryColor, accentColor: defaultConfig.accentColor }}>
+    :root {
+      --color-primary: var(--primaryColor);
+      --color-accent: var(--accentColor);
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <DynamicJobDetail client:load />
+</body>
+</html>

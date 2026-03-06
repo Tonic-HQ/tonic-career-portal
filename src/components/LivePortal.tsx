@@ -64,6 +64,11 @@ function applyPortalConfig(config: PortalConfig) {
   if (config.linkColor) root.style.setProperty('--color-accent', config.linkColor);
 
   document.title = `${config.companyName} — Careers`;
+
+  // Persist to sessionStorage so job detail pages can restore the config
+  try {
+    sessionStorage.setItem('tonic_portal_config', JSON.stringify(config));
+  } catch { /* quota exceeded or private browsing */ }
 }
 
 function DynamicHeader({ config }: { config: PortalConfig }) {
