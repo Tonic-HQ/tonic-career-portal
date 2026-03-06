@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
-interface OscpConfig {
+interface ProxyResponse {
+  source: 'tonic-templater' | 'oscp-appjson';
   companyName?: string;
   companyLogoPath?: string;
   companyUrl?: string;
@@ -8,6 +9,11 @@ interface OscpConfig {
     corpToken?: string;
     swimlane?: string;
     fields?: string[];
+  };
+  colors?: {
+    topBarColor?: string;
+    sideBarColor?: string;
+    linkColor?: string;
   };
   additionalJobCriteria?: {
     field?: string;
@@ -41,6 +47,9 @@ interface ImportedConfig {
   corpToken: string;
   swimlane: string;
   sourceUrl: string;
+  source?: string;
+  primaryColor?: string;
+  linkColor?: string;
 }
 
 function formatCardDate(ts: number): string {
@@ -193,7 +202,7 @@ export default function PreviewPage() {
         setImporting(false);
         return;
       }
-      const data = await res.json() as OscpConfig;
+      const data = await res.json() as ProxyResponse;
       const corpToken = data.service?.corpToken;
       const swimlane = data.service?.swimlane;
       if (!corpToken || !swimlane) {
@@ -208,6 +217,9 @@ export default function PreviewPage() {
         corpToken,
         swimlane,
         sourceUrl: rawUrl,
+        source: data.source,
+        primaryColor: data.colors?.topBarColor,
+        linkColor: data.colors?.linkColor,
       };
       applyConfig(config);
     } catch (err) {
@@ -419,6 +431,9 @@ export default function PreviewPage() {
                 />
                 <p className="text-sm font-medium text-gray-700 truncate">
                   Preview of <span className="font-semibold">{importedConfig.companyName}</span> on Tonic
+                  {importedConfig.source === 'tonic-templater' && (
+                    <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Tonic Config</span>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
