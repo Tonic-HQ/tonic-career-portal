@@ -308,7 +308,7 @@ export default function JobDetailView({ job }: Props) {
           {config.jobDescriptionFooter && (
             <div className="mt-8 pt-6 border-t border-gray-100">
               <div
-                className="text-gray-500 text-sm leading-[1.8] [&>p]:mb-3 [&>p:last-child]:mb-0"
+                className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ul]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-gray-600 [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-7 [&>h3]:mb-3 [&>h3]:text-base [&>strong]:text-gray-800 [&>strong]:font-semibold"
                 dangerouslySetInnerHTML={{ __html: config.jobDescriptionFooter }}
               />
             </div>
