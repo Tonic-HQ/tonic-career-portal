@@ -104,6 +104,8 @@ export interface PortalConfig {
     submissionStatus?: string;
     /** Show general Apply Now button on job list (not tied to a specific job). Default: true for REST portals */
     generalApply?: boolean;
+    /** Default source value for new candidates (default: 'Career Portal'). Should match a value in Bullhorn's Source dropdown. */
+    defaultSource?: string;
     /** EEO voluntary self-identification fields. Each can be enabled/disabled independently. */
     eeo?: {
       gender?: boolean;

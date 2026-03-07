@@ -295,7 +295,8 @@ export async function submitApplication(
 
   if (apiMode === 'rest' && portalId) {
     // Pro tier: use REST API proxy for full field control
-    return submitViaRestApi(jobId, firstName, lastName, email, phone, formData, summary, portalId, candidateStatus, submissionStatus);
+    const defaultSource = config.applyForm?.defaultSource || 'Career Portal';
+    return submitViaRestApi(jobId, firstName, lastName, email, phone, formData, summary, portalId, candidateStatus, submissionStatus, defaultSource);
   } else if (jobId) {
     // Standard: use public apply endpoint with generated summary file (requires jobId)
     return submitViaPublicApi(jobId, firstName, lastName, email, phone, summary, config);
@@ -357,6 +358,7 @@ async function submitViaRestApi(
   portalId: string,
   candidateStatus: string,
   submissionStatus: string,
+  defaultSource: string,
 ): Promise<ApplicationResult> {
   // Step 1: Check for existing candidate by email
   const searchUrl = `/api/bh/search/Candidate?portal=${encodeURIComponent(portalId)}&query=${encodeURIComponent(`email:"${email}"`)}&fields=id,firstName,lastName,email,status&count=1`;
@@ -377,7 +379,7 @@ async function submitViaRestApi(
       lastName,
       email,
       status: candidateStatus,
-      source: (formData.get('source') as string) || 'Career Portal',
+      source: defaultSource,
     };
     if (phone) candidatePayload.phone = phone;
 
@@ -405,7 +407,7 @@ async function submitViaRestApi(
       candidate: { id: candidateId },
       jobOrder: { id: jobId },
       status: submissionStatus,
-      source: (formData.get('source') as string) || 'Career Portal',
+      source: defaultSource,
       dateWebResponse: new Date().getTime(),
     };
 
