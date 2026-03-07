@@ -168,3 +168,5 @@ Features that go beyond Premier's specific requests — platform-level capabilit
 - [ ] **Resume upload** (optional) — for clients who want traditional apply alongside quick apply
 - [ ] **Custom domain mapping** — CNAME portal.clientdomain.com to our infrastructure
 - [ ] **Static export pipeline** — generate standalone HTML/JS/CSS bundle for $199 tier clients
+- [ ] **Public documentation site** — `docs.appsforstaffing.com`. Setup guides, embedding instructions, feature docs, API reference, tier comparison. Doubles as sales tool. Astro/Mintlify/Nextra.
+- [ ] **Per-client setup page** — dynamically generated from portal config in admin dashboard. Shows embed code, Indeed feed URL, CNAME instructions, field mappings. Zero manual maintenance per client.
