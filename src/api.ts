@@ -163,8 +163,20 @@ export async function getJob(id: number): Promise<Job | null> {
   if (config.service.corpToken === 'demo') {
     return DEMO_JOBS.find(j => j.id === id) ?? null;
   }
-  const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
-  const url = `${base}/query/JobBoardPost?where=(id=${id})&fields=${config.service.fields}`;
+
+  const portalId = config.portalId;
+  const apiMode = config.apiMode || 'public';
+
+  let url: string;
+  if (apiMode === 'rest' && portalId) {
+    // Pro tier: fetch through REST proxy with full fields
+    url = `/api/bh/query/JobOrder?portal=${encodeURIComponent(portalId)}&where=${encodeURIComponent(`id=${id}`)}&fields=${encodeURIComponent(REST_FIELDS)}&count=1`;
+  } else {
+    // Standard: direct to Bullhorn public API
+    const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
+    url = `${base}/query/JobBoardPost?where=(id=${id})&fields=${config.service.fields}`;
+  }
+
   const res = await fetch(url);
   const data = await res.json() as { data?: any[] };
   if (!data.data?.[0]) return null;
