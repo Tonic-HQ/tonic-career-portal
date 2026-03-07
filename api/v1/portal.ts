@@ -10,7 +10,7 @@
  * Docs: /api/v1/openapi.json
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authenticateRequest, errorResponse, withDocs } from './_auth';
+import { authenticateRequest, errorResponse, withDocs } from '../../lib/api-auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS

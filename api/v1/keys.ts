@@ -10,7 +10,7 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { generateApiKey, errorResponse, withDocs } from './_auth';
+import { generateApiKey, errorResponse, withDocs } from '../../lib/api-auth';
 
 const ADMIN_DOMAINS = ['tonichq.com'];
 
