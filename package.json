@@ -13,7 +13,6 @@
     "@supabase/supabase-js": "^2.98.0",
     "astro": "^4.16.0",
     "better-auth": "^1.5.4",
-    "bullhorn-auth-client": "file:lib/bullhorn-auth-client",
     "pg": "^8.20.0",
     "postgres": "^3.4.8",
     "react": "^18.3.1",
