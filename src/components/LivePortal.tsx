@@ -29,7 +29,7 @@ interface PortalConfig {
   portalId?: string;
   apiMode?: 'public' | 'rest';
   cardBorderRadius?: string;
-  hideClientName?: boolean;
+  companyAbout?: { enabled: boolean; field?: string; heading?: string };
   jobDescriptionFooter?: string;
   labels?: { heading?: string };
   service?: { corpToken?: string; swimlane?: string };
@@ -86,7 +86,7 @@ function applyPortalConfig(config: PortalConfig) {
     portalId: config.portalId,
     apiMode: config.apiMode || 'public',
     cardBorderRadius: config.cardBorderRadius,
-    hideClientName: config.hideClientName,
+    companyAbout: config.companyAbout,
     jobDescriptionFooter: config.jobDescriptionFooter,
     labels: config.labels,
     service: {
@@ -354,7 +354,7 @@ export default function LivePortal() {
         portalId: id,
         apiMode: raw.apiMode || 'public',
         cardBorderRadius: raw.cardBorderRadius,
-        hideClientName: raw.hideClientName,
+        companyAbout: raw.companyAbout,
         jobDescriptionFooter: raw.jobDescriptionFooter,
         labels: raw.labels,
       };

@@ -65,6 +65,15 @@ export interface PortalConfig {
   apiMode?: 'public' | 'rest';
   /** Border radius for job cards (e.g., '20px', '12px', '0'). Defaults to '8px'. */
   cardBorderRadius?: string;
+  /** Company "About" section on job detail page. Off by default — client enables and chooses field. */
+  companyAbout?: {
+    /** Show the section (default: false) */
+    enabled: boolean;
+    /** Bullhorn field path to pull from (default: 'clientCorporation.companyDescription') */
+    field?: string;
+    /** Custom heading (default: 'About the Company') */
+    heading?: string;
+  };
   /** Standard text appended to every job description (disclaimers, benefits info, EEO statements).
    *  Supports HTML. Applied automatically so it doesn't need to be in every Bullhorn job. */
   jobDescriptionFooter?: string;
