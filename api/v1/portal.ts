@@ -184,16 +184,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       pageViews: views.count || 0, applyClicks: applies.count || 0, applications: apps.count || 0 }));
   }
 
+  // ── Helper: resolve credential ID for this portal ──
+  async function getCredential() {
+    const { data: p } = await supabase.from('portals').select('ats_credential_id').eq('id', portalId).single();
+    if (p?.ats_credential_id) {
+      const { data } = await supabase.from('ats_credentials').select('id, credentials, tokens_updated_at, created_at, label')
+        .eq('id', p.ats_credential_id).single();
+      return data;
+    }
+    // Legacy fallback
+    const { data } = await supabase.from('ats_credentials').select('id, credentials, tokens_updated_at, created_at, label')
+      .eq('portal_id', portalId).eq('provider', 'bullhorn').single();
+    return data;
+  }
+
   // ── GET /api/v1/portal/credentials ──
   if (req.method === 'GET' && subPath === 'credentials') {
-    const { data } = await supabase.from('ats_credentials')
-      .select('credentials, tokens_updated_at, created_at')
-      .eq('portal_id', portalId).eq('provider', 'bullhorn').single();
-
+    const data = await getCredential();
     if (!data) return res.json(withDocs({ portalId, configured: false, message: 'No Bullhorn credentials configured.' }));
     const creds = data.credentials as Record<string, string>;
     return res.json(withDocs({
-      portalId, configured: true, clientId: creds.clientId || null, username: creds.username || null,
+      portalId, configured: true, credentialId: data.id, label: data.label,
+      clientId: creds.clientId || null, username: creds.username || null,
       hasClientSecret: !!creds.clientSecret, hasPassword: !!creds.password,
       lastValidated: data.tokens_updated_at || null, createdAt: data.created_at,
     }));
@@ -201,8 +213,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ── POST /api/v1/portal/credentials/validate ──
   if (req.method === 'POST' && subPath === 'credentials/validate') {
-    const { data } = await supabase.from('ats_credentials')
-      .select('credentials').eq('portal_id', portalId).eq('provider', 'bullhorn').single();
+    const data = await getCredential();
     if (!data) return res.status(400).json(errRes('No credentials configured to validate', 400));
 
     try {
@@ -217,7 +228,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await supabase.from('ats_credentials').update({
         tokens: { restUrl: session.restUrl, restToken: session.restToken, refreshToken: session.refreshToken, accessToken: session.accessToken },
         tokens_updated_at: new Date().toISOString(),
-      }).eq('portal_id', portalId).eq('provider', 'bullhorn');
+      }).eq('id', data.id);
 
       return res.json(withDocs({ valid: true, message: 'Bullhorn credentials are valid.', restUrl: session.restUrl, validatedAt: new Date().toISOString() }));
     } catch (err: any) {
@@ -233,9 +244,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json(errRes('Provide at least one: clientId, clientSecret, username, password', 400));
     }
 
-    const { data: existing } = await supabase.from('ats_credentials')
-      .select('id, credentials').eq('portal_id', portalId).eq('provider', 'bullhorn').single();
-
+    const existing = await getCredential();
     const current = (existing?.credentials || {}) as Record<string, string>;
     const merged = { ...current, ...(clientId && { clientId }), ...(clientSecret && { clientSecret }),
       ...(username && { username }), ...(password && { password }) };
@@ -243,7 +252,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (existing) {
       await supabase.from('ats_credentials').update({ credentials: merged, tokens: null, tokens_updated_at: null }).eq('id', existing.id);
     } else {
-      await supabase.from('ats_credentials').insert({ portal_id: portalId, provider: 'bullhorn', credentials: merged });
+      // Create new credential and link to portal
+      const { data: newCred } = await supabase.from('ats_credentials')
+        .insert({ portal_id: portalId, provider: 'bullhorn', credentials: merged })
+        .select('id').single();
+      if (newCred) {
+        await supabase.from('portals').update({ ats_credential_id: newCred.id }).eq('id', portalId);
+      }
     }
 
     return res.json(withDocs({

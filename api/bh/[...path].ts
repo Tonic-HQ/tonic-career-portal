@@ -23,12 +23,34 @@ async function getPortalCredentials(portalId: string) {
   const supabase = getSupabase();
   if (!supabase) return null;
 
-  const { data } = await supabase
-    .from('ats_credentials')
-    .select('credentials, tokens')
-    .eq('portal_id', portalId)
-    .eq('provider', 'bullhorn')
+  // Look up credentials via portal's ats_credential_id (shared credentials)
+  // Falls back to legacy portal_id lookup for backwards compatibility
+  const { data: portal } = await supabase
+    .from('portals')
+    .select('ats_credential_id')
+    .eq('id', portalId)
     .single();
+
+  let data: any = null;
+  if (portal?.ats_credential_id) {
+    const result = await supabase
+      .from('ats_credentials')
+      .select('credentials, tokens')
+      .eq('id', portal.ats_credential_id)
+      .single();
+    data = result.data;
+  }
+
+  // Legacy fallback: direct portal_id lookup
+  if (!data) {
+    const result = await supabase
+      .from('ats_credentials')
+      .select('credentials, tokens')
+      .eq('portal_id', portalId)
+      .eq('provider', 'bullhorn')
+      .single();
+    data = result.data;
+  }
 
   if (!data) return null;
   const creds = data.credentials as Record<string, string>;
@@ -48,11 +70,27 @@ async function getPortalCredentials(portalId: string) {
 async function saveCachedTokens(portalId: string, tokens: CachedTokens) {
   const supabase = getSupabase();
   if (!supabase) return;
-  await supabase
-    .from('ats_credentials')
-    .update({ tokens, tokens_updated_at: new Date().toISOString() })
-    .eq('portal_id', portalId)
-    .eq('provider', 'bullhorn');
+
+  // Find credential ID via portal's ats_credential_id
+  const { data: portal } = await supabase
+    .from('portals')
+    .select('ats_credential_id')
+    .eq('id', portalId)
+    .single();
+
+  if (portal?.ats_credential_id) {
+    await supabase
+      .from('ats_credentials')
+      .update({ tokens, tokens_updated_at: new Date().toISOString() })
+      .eq('id', portal.ats_credential_id);
+  } else {
+    // Legacy fallback
+    await supabase
+      .from('ats_credentials')
+      .update({ tokens, tokens_updated_at: new Date().toISOString() })
+      .eq('portal_id', portalId)
+      .eq('provider', 'bullhorn');
+  }
 }
 
 // ── Operation Allowlist ──
