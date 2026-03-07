@@ -311,8 +311,7 @@ export default function JobDetailView({ job }: Props) {
                 />
               </div>
             );
-          })()
-          )}
+          })()}
         </div>
 
         {/* Share section */}
