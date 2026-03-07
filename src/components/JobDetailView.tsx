@@ -239,14 +239,14 @@ export default function JobDetailView({ job }: Props) {
             Job Description
           </h2>
           <div
-            className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ul]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-gray-600 [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-7 [&>h3]:mb-3 [&>h3]:text-base [&>h2]:font-bold [&>h2]:text-gray-900 [&>h2]:mt-7 [&>h2]:mb-3 [&>strong]:text-gray-800 [&>strong]:font-semibold"
+            className="prose-jd"
             dangerouslySetInnerHTML={{ __html: job.publicDescription }}
           />
 
           {config.jobDescriptionFooter && (
             <div className="mt-8 pt-6 border-t border-gray-100">
               <div
-                className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ul]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-gray-600 [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-7 [&>h3]:mb-3 [&>h3]:text-base [&>strong]:text-gray-800 [&>strong]:font-semibold"
+                className="prose-jd"
                 dangerouslySetInnerHTML={{ __html: config.jobDescriptionFooter }}
               />
             </div>
@@ -263,7 +263,7 @@ export default function JobDetailView({ job }: Props) {
                   {config.companyAbout.heading || 'About the Company'}
                 </h3>
                 <div
-                  className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0"
+                  className="prose-jd"
                   dangerouslySetInnerHTML={{ __html: value }}
                 />
               </div>
