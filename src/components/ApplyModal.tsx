@@ -116,14 +116,14 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
     }
 
     try {
-      await submitApplication(jobId, formData);
+      const result = await submitApplication(jobId, formData, jobTitle);
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(`applied_${jobId}`, 'true');
       }
       setStatus('success');
-    } catch (err) {
+    } catch (err: any) {
       setStatus('error');
-      setErrorMessage('Something went wrong. Please try again.');
+      setErrorMessage(err?.message || 'Something went wrong. Please try again.');
     }
   }
 

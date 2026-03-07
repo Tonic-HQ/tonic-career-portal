@@ -171,17 +171,227 @@ export async function getJob(id: number): Promise<Job | null> {
   return normalizeBullhornJob(data.data[0]);
 }
 
-export async function submitApplication(jobId: number, formData: FormData): Promise<void> {
-  const config = loadConfig();
-  if (config.service.corpToken === 'demo') {
-    await new Promise(r => setTimeout(r, 1000));
-    return;
-  }
-  const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
+export interface ApplicationResult {
+  candidateId?: number;
+  candidateAlreadyExisted?: boolean;
+  jobSubmissionId?: number;
+  error?: string;
+}
+
+function generateApplicationSummary(
+  jobId: number,
+  jobTitle: string,
+  formData: FormData,
+  portalUrl?: string
+): string {
   const firstName = formData.get('firstName') as string;
   const lastName = formData.get('lastName') as string;
   const email = formData.get('email') as string;
-  const phone = (formData.get('phone') as string) ?? '';
-  const url = `${base}/apply/${jobId}/raw?externalID=Resume&type=Resume&firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&format=txt`;
-  await fetch(url, { method: 'POST', body: formData });
+  const phone = (formData.get('phone') as string) || '';
+  const linkedInUrl = (formData.get('linkedInUrl') as string) || '';
+  const source = (formData.get('source') as string) || '';
+  const appliedViaLinkedIn = formData.get('appliedViaLinkedIn') === 'true';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  const lines: string[] = [
+    'APPLICATION SUMMARY',
+    '='.repeat(40),
+    '',
+    `Submitted: ${dateStr}`,
+    `Position: ${jobTitle} (Job #${jobId})`,
+  ];
+
+  if (portalUrl) lines.push(`Source: Career Portal (${portalUrl})`);
+  if (source) lines.push(`Referral Source: ${source}`);
+  if (appliedViaLinkedIn) lines.push('Applied via: LinkedIn Sign-In');
+
+  lines.push('', 'CANDIDATE INFORMATION', '-'.repeat(30), '');
+  lines.push(`Name: ${firstName} ${lastName}`);
+  lines.push(`Email: ${email}`);
+  if (phone) lines.push(`Phone: ${phone}`);
+  if (linkedInUrl) lines.push(`LinkedIn: ${linkedInUrl}`);
+
+  // Include any additional custom fields
+  const knownFields = new Set(['firstName', 'lastName', 'email', 'phone', 'linkedInUrl', 'source', 'attributionNote', 'appliedViaLinkedIn', 'resume']);
+  for (const [key, value] of formData.entries()) {
+    if (!knownFields.has(key) && typeof value === 'string' && value.trim()) {
+      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+      lines.push(`${label}: ${value}`);
+    }
+  }
+
+  lines.push('', '-'.repeat(30));
+  lines.push('Submitted via Tonic Career Portal');
+  lines.push('https://appsforstaffing.com');
+
+  return lines.join('\n');
+}
+
+export async function submitApplication(
+  jobId: number,
+  formData: FormData,
+  jobTitle?: string,
+): Promise<ApplicationResult> {
+  const config = loadConfig();
+
+  // Demo mode: simulate success
+  if (config.service.corpToken === 'demo') {
+    await new Promise(r => setTimeout(r, 1000));
+    return { candidateId: 999999, candidateAlreadyExisted: false };
+  }
+
+  const firstName = formData.get('firstName') as string;
+  const lastName = formData.get('lastName') as string;
+  const email = formData.get('email') as string;
+  const phone = (formData.get('phone') as string) || '';
+  const portalId = config.portalId;
+  const apiMode = config.apiMode || 'public';
+
+  // Generate the application summary file
+  const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'appsforstaffing.com';
+  const summary = generateApplicationSummary(jobId, jobTitle || `Job #${jobId}`, formData, portalUrl);
+
+  if (apiMode === 'rest' && portalId) {
+    // Pro tier: use REST API proxy for full field control
+    return submitViaRestApi(jobId, firstName, lastName, email, phone, formData, summary, portalId);
+  } else {
+    // Standard: use public apply endpoint with generated summary file
+    return submitViaPublicApi(jobId, firstName, lastName, email, phone, summary, config);
+  }
+}
+
+async function submitViaPublicApi(
+  jobId: number,
+  firstName: string,
+  lastName: string,
+  email: string,
+  phone: string,
+  summary: string,
+  config: ReturnType<typeof loadConfig>,
+): Promise<ApplicationResult> {
+  const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
+  const params = new URLSearchParams({
+    externalID: 'CareerPortalApplication',
+    type: 'Resume',
+    firstName,
+    lastName,
+    email,
+    format: 'text',
+  });
+  if (phone) params.set('phone', phone);
+
+  const url = `${base}/apply/${jobId}/raw?${params.toString()}`;
+
+  // Create multipart form with the application summary as the file
+  const blob = new Blob([summary], { type: 'text/plain' });
+  const submitForm = new FormData();
+  submitForm.append('resume', blob, `application-${firstName}-${lastName}.txt`);
+
+  const res = await fetch(url, { method: 'POST', body: submitForm });
+  const data = await res.json();
+
+  if (data.errorMessage) {
+    throw new Error(data.errorMessage);
+  }
+
+  return {
+    candidateId: data.candidate?.id,
+    candidateAlreadyExisted: data.candidateAlreadyExisted ?? false,
+    jobSubmissionId: data.jobSubmission?.id,
+  };
+}
+
+async function submitViaRestApi(
+  jobId: number,
+  firstName: string,
+  lastName: string,
+  email: string,
+  phone: string,
+  formData: FormData,
+  summary: string,
+  portalId: string,
+): Promise<ApplicationResult> {
+  // Step 1: Check for existing candidate by email
+  const searchUrl = `/api/bh/search/Candidate?portal=${encodeURIComponent(portalId)}&query=${encodeURIComponent(`email:"${email}"`)}&fields=id,firstName,lastName,email,status&count=1`;
+  const searchRes = await fetch(searchUrl);
+  const searchData = await searchRes.json();
+  
+  let candidateId: number;
+  let candidateAlreadyExisted = false;
+
+  if (searchData.data && searchData.data.length > 0) {
+    // Candidate exists - use their ID, don't change status
+    candidateId = searchData.data[0].id;
+    candidateAlreadyExisted = true;
+  } else {
+    // Step 2: Create new candidate
+    const candidatePayload: Record<string, any> = {
+      firstName,
+      lastName,
+      email,
+      status: 'New Lead',
+      source: (formData.get('source') as string) || 'Career Portal',
+    };
+    if (phone) candidatePayload.phone = phone;
+
+    const linkedInUrl = (formData.get('linkedInUrl') as string) || '';
+    if (linkedInUrl) candidatePayload.companyURL = linkedInUrl;
+
+    const createRes = await fetch(`/api/bh/entity/Candidate?portal=${encodeURIComponent(portalId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(candidatePayload),
+    });
+    const createData = await createRes.json();
+
+    if (createData.errorMessage) {
+      throw new Error(createData.errorMessage);
+    }
+    candidateId = createData.changedEntityId;
+  }
+
+  // Step 3: Create JobSubmission linking candidate to job
+  const submissionPayload = {
+    candidate: { id: candidateId },
+    jobOrder: { id: jobId },
+    status: 'New Lead',
+    source: (formData.get('source') as string) || 'Career Portal',
+    dateWebResponse: new Date().getTime(),
+  };
+
+  const subRes = await fetch(`/api/bh/entity/JobSubmission?portal=${encodeURIComponent(portalId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(submissionPayload),
+  });
+  const subData = await subRes.json();
+
+  // Step 4: Attach application summary as a file (Note on candidate)
+  const notePayload = {
+    personReference: { id: candidateId },
+    jobOrder: { id: jobId },
+    action: 'Career Portal Application',
+    comments: summary,
+  };
+
+  await fetch(`/api/bh/entity/Note?portal=${encodeURIComponent(portalId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(notePayload),
+  });
+
+  return {
+    candidateId,
+    candidateAlreadyExisted,
+    jobSubmissionId: subData.changedEntityId,
+  };
 }
