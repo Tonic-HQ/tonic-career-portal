@@ -7,6 +7,7 @@
  */
 import { betterAuth } from 'better-auth';
 import { magicLink } from 'better-auth/plugins';
+import { Pool } from 'pg';
 
 const INTERNAL_DOMAINS = ['tonichq.com', 'bellwetherit.com'];
 
@@ -15,11 +16,13 @@ function isInternalEmail(email: string): boolean {
   return INTERNAL_DOMAINS.includes(domain);
 }
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DATABASE_URL || '',
+  ssl: { rejectUnauthorized: false },
+});
+
 export const auth = betterAuth({
-  database: {
-    type: 'postgres',
-    url: process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL || '',
-  },
+  database: pool,
   secret: process.env.BETTER_AUTH_SECRET || '',
   baseURL: process.env.BETTER_AUTH_URL || 'https://careersite.appsforstaffing.com',
   basePath: '/api/auth',
