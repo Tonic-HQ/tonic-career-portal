@@ -35,6 +35,18 @@ export interface FieldMappings {
   [key: string]: string | undefined;
 }
 
+/** Custom font definition for portal branding */
+export interface CustomFont {
+  /** Font family name (e.g., 'Gucci Sans Pro') */
+  family: string;
+  /** Font file URLs by weight */
+  weights: {
+    weight: number;
+    url: string;
+    format?: 'opentype' | 'truetype' | 'woff' | 'woff2';
+  }[];
+}
+
 export interface PortalConfig {
   companyName: string;
   companyLogoUrl: string;
@@ -42,6 +54,8 @@ export interface PortalConfig {
   primaryColor: string;
   accentColor: string;
   fontFamily: string;
+  /** Custom font files to load (if fontFamily requires non-Google fonts) */
+  customFont?: CustomFont;
   darkMode: boolean;
   service: {
     swimlane: string;

@@ -9,6 +9,7 @@
  */
 import { useState, useEffect } from 'react';
 import { setConfigOverride, loadConfig } from '../config';
+import type { CustomFont } from '../config';
 import { invalidateJobCache } from '../api';
 import JobListPage from './JobListPage';
 
@@ -22,6 +23,8 @@ interface PortalConfig {
   linkColor?: string;
   privacyPolicyUrl?: string;
   showHeader?: boolean;
+  fontFamily?: string;
+  customFont?: CustomFont;
   service?: { corpToken?: string; swimlane?: string };
 }
 
@@ -45,6 +48,26 @@ function getPortalIdFromPath(): string | null {
   return null;
 }
 
+/** Inject @font-face rules for custom fonts */
+function injectCustomFont(font: CustomFont) {
+  const existingStyle = document.getElementById('tonic-custom-fonts');
+  if (existingStyle) existingStyle.remove();
+
+  const css = font.weights.map(w => `
+@font-face {
+  font-family: '${font.family}';
+  src: url('${w.url}') format('${w.format || 'opentype'}');
+  font-weight: ${w.weight};
+  font-style: normal;
+  font-display: swap;
+}`).join('\n');
+
+  const style = document.createElement('style');
+  style.id = 'tonic-custom-fonts';
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
 function applyPortalConfig(config: PortalConfig) {
   setConfigOverride({
     companyName: config.companyName,
@@ -64,6 +87,15 @@ function applyPortalConfig(config: PortalConfig) {
   const root = document.documentElement;
   if (config.primaryColor) root.style.setProperty('--color-primary', config.primaryColor);
   if (config.linkColor) root.style.setProperty('--color-accent', config.linkColor);
+
+  // Apply custom font if configured
+  if (config.customFont) {
+    injectCustomFont(config.customFont);
+    document.documentElement.style.setProperty('font-family', `'${config.customFont.family}', sans-serif`);
+    document.body.style.fontFamily = `'${config.customFont.family}', sans-serif`;
+  } else if (config.fontFamily) {
+    document.body.style.fontFamily = config.fontFamily;
+  }
 
   document.title = `${config.companyName} — Careers`;
 
@@ -293,6 +325,8 @@ export default function LivePortal() {
         linkColor: raw.linkColor,
         privacyPolicyUrl: raw.privacyPolicyUrl,
         showHeader: raw.showHeader,
+        fontFamily: raw.fontFamily,
+        customFont: raw.customFont,
       };
       applyPortalConfig(portalConfig);
       setConfig(portalConfig);
