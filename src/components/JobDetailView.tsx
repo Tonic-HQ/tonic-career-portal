@@ -104,13 +104,15 @@ export default function JobDetailView({ job }: Props) {
     }
   }
 
-  const locationStr =
-    job.address.state === 'Remote' ? 'Remote' : `${job.address.city}, ${job.address.state}`;
+  const locationParts = [job.address.city, job.address.state].filter(Boolean);
+  const locationStr = job.address.state === 'Remote'
+    ? 'Remote'
+    : locationParts.length > 0 ? locationParts.join(', ') : '';
 
   const badgeClass = BADGE_COLORS[job.employmentType] ?? 'bg-slate-100 text-slate-600 border-slate-200';
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareTitle = encodeURIComponent(`${job.title} at ${job.address.city}`);
+  const shareTitle = encodeURIComponent(`${job.title}${job.address.city ? ` at ${job.address.city}` : ''}`);
 
   return (
     <>
@@ -184,6 +186,7 @@ export default function JobDetailView({ job }: Props) {
 
               {/* Meta row */}
               <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                {locationStr && (
                 <span className="flex items-center gap-1.5">
                   <svg
                     className="w-4 h-4 flex-shrink-0"
@@ -198,6 +201,7 @@ export default function JobDetailView({ job }: Props) {
                   </svg>
                   {locationStr}
                 </span>
+                )}
 
                 <span className="flex items-center gap-1.5">
                   <svg
@@ -373,8 +377,8 @@ export default function JobDetailView({ job }: Props) {
             </div>
             <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Ready to join the team?</h3>
             <p className="text-blue-200 text-sm mb-7 font-light max-w-sm mx-auto leading-relaxed">
-              We're looking for a {job.title} to work with us{' '}
-              {job.address.state === 'Remote' ? 'remotely' : `in ${locationStr}`}.
+              We're looking for a {job.title} to work with us
+              {job.address.state === 'Remote' ? ' remotely' : locationStr ? ` in ${locationStr}` : ''}.
             </p>
             <button
               onClick={() => setIsModalOpen(true)}

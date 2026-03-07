@@ -38,10 +38,10 @@ function computeCounts(jobs: Job[]): FilterCounts {
 }
 
 function JobCard({ job }: { job: Job }) {
-  const locationStr =
-    job.address.state === 'Remote'
-      ? 'Remote'
-      : `${job.address.city}, ${job.address.state}`;
+  const locationParts = [job.address.city, job.address.state].filter(Boolean);
+  const locationStr = job.address.state === 'Remote'
+    ? 'Remote'
+    : locationParts.length > 0 ? locationParts.join(', ') : '';
   const descriptionPreview = stripHtml(job.publicDescription);
 
   return (
@@ -64,7 +64,7 @@ function JobCard({ job }: { job: Job }) {
 
         {/* Chips */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <IconChip label={locationStr} icon={<LocationIcon />} />
+          {locationStr && <IconChip label={locationStr} icon={<LocationIcon />} />}
           {job.onSite && <IconChip label={job.onSite} icon={<RemoteIcon />} />}
           <TextChip label={job.employmentType} />
           {(job.salaryLow || job.salaryHigh) ? (
