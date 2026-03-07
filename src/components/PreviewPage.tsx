@@ -454,7 +454,7 @@ function ImportForm({
         <div className="text-center pt-2 pb-4">
           <p className="text-sm text-gray-400 mb-2">Don't have your credentials handy?</p>
           <a
-            href="/site#config=eyJjb21wYW55TmFtZSI6IlRvbmljIEhRIiwiY29tcGFueVVybCI6Imh0dHBzOi8vdG9uaWNocS5jb20iLCJwcmltYXJ5Q29sb3IiOiIjNGY0NmU1IiwiYWNjZW50Q29sb3IiOiIjZWVmMmZmIiwiY29ycFRva2VuIjoiM2FwdzI5Iiwic3dpbWxhbmUiOiI5MSJ9"
+            href="/cs4exrqy"
             className="inline-flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"
             style={{ color: 'var(--color-primary)' }}
           >
