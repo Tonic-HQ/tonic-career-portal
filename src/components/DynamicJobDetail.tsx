@@ -34,6 +34,13 @@ function restorePortalConfig() {
       primaryColor: config.primaryColor || '#2563EB',
       accentColor: config.linkColor || '#10B981',
       privacyPolicyUrl: config.privacyPolicyUrl || '',
+      portalId: config.portalId,
+      apiMode: config.apiMode || 'public',
+      cardBorderRadius: config.cardBorderRadius,
+      companyAbout: config.companyAbout,
+      jobDescriptionFooter: config.jobDescriptionFooter,
+      labels: config.labels,
+      applyForm: config.applyForm,
       service: {
         swimlane: config.swimlane,
         corpToken: config.corpToken,

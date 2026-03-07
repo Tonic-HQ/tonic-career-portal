@@ -32,6 +32,7 @@ interface PortalConfig {
   companyAbout?: { enabled: boolean; field?: string; heading?: string };
   jobDescriptionFooter?: string;
   labels?: { heading?: string };
+  applyForm?: any;
   service?: { corpToken?: string; swimlane?: string };
 }
 
@@ -89,6 +90,7 @@ function applyPortalConfig(config: PortalConfig) {
     companyAbout: config.companyAbout,
     jobDescriptionFooter: config.jobDescriptionFooter,
     labels: config.labels,
+    applyForm: config.applyForm,
     service: {
       swimlane: config.swimlane,
       corpToken: config.corpToken,
@@ -357,6 +359,7 @@ export default function LivePortal() {
         companyAbout: raw.companyAbout,
         jobDescriptionFooter: raw.jobDescriptionFooter,
         labels: raw.labels,
+        applyForm: raw.applyForm,
       };
       applyPortalConfig(portalConfig);
       setConfig(portalConfig);
