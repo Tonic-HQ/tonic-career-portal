@@ -68,17 +68,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Missing or invalid config object' });
       }
 
-      const id = existingId && isValidId(existingId) ? existingId : generateId();
-
       // Extract key fields for indexing
       const corpToken = config.service?.corpToken || config.corpToken || null;
       const swimlane = config.service?.swimlane || config.swimlane || null;
       const companyName = config.companyName || null;
 
-      // Upsert portal
+      // If updating an existing portal, require authentication
+      if (existingId && isValidId(existingId)) {
+        // Check if portal exists
+        const { data: existing } = await supabase
+          .from('portals')
+          .select('id, tier')
+          .eq('id', existingId)
+          .single();
+
+        if (existing) {
+          // Portal exists — require auth to update
+          const authHeader = req.headers.authorization;
+          if (!authHeader?.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Authentication required to update existing portals' });
+          }
+
+          const token = authHeader.slice(7);
+          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          if (authError || !user) {
+            return res.status(401).json({ error: 'Invalid or expired authentication token' });
+          }
+
+          // Update existing portal
+          const { data, error } = await supabase
+            .from('portals')
+            .update({
+              config,
+              corp_token: corpToken,
+              swimlane: swimlane?.toString(),
+              company_name: companyName,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingId)
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Supabase update error:', error);
+            return res.status(500).json({ error: 'Failed to update portal config', detail: error.message });
+          }
+
+          return res.status(200).json({
+            id: data.id,
+            url: `/${data.id}`,
+            created: data.created_at,
+            expires: data.expires_at,
+          });
+        }
+      }
+
+      // Creating a new portal — always generate a random ID (prevent ID squatting)
+      const id = generateId();
+
       const { data, error } = await supabase
         .from('portals')
-        .upsert({
+        .insert({
           id,
           config,
           corp_token: corpToken,
@@ -86,15 +136,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           company_name: companyName,
           tier: 'preview',
           expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'id',
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Supabase upsert error:', error);
+        console.error('Supabase insert error:', error);
         return res.status(500).json({ error: 'Failed to save portal config', detail: error.message });
       }
 

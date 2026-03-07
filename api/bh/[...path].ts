@@ -55,6 +55,31 @@ async function saveCachedTokens(portalId: string, tokens: CachedTokens) {
     .eq('provider', 'bullhorn');
 }
 
+// ── Operation Allowlist ──
+// Only permit the specific Bullhorn API operations the portal frontend needs.
+// Everything else is blocked to prevent unauthorized data access.
+const ALLOWED_OPERATIONS: { method: string; pattern: RegExp }[] = [
+  // Job display (read-only)
+  { method: 'GET', pattern: /^query\/JobOrder$/ },
+  { method: 'GET', pattern: /^query\/JobBoardPost$/ },
+  { method: 'GET', pattern: /^search\/JobOrder$/ },
+  { method: 'GET', pattern: /^entity\/JobOrder\/\d+$/ },
+  // Apply flow — candidate duplicate check
+  { method: 'GET', pattern: /^search\/Candidate$/ },
+  // Apply flow — create candidate
+  { method: 'PUT', pattern: /^entity\/Candidate$/ },
+  // Apply flow — create job submission (web response)
+  { method: 'PUT', pattern: /^entity\/JobSubmission$/ },
+  // Apply flow — attach application note
+  { method: 'PUT', pattern: /^entity\/Note$/ },
+];
+
+function isAllowedOperation(method: string, path: string): boolean {
+  return ALLOWED_OPERATIONS.some(
+    op => op.method === method && op.pattern.test(path)
+  );
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const portalId = req.query.portal as string;
   if (!portalId) return res.status(400).json({ error: 'Missing portal query parameter' });
@@ -84,6 +109,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Build Bullhorn API URL from path segments
   const pathSegments = Array.isArray(req.query.path) ? req.query.path : [req.query.path];
   const bhPath = pathSegments.filter(Boolean).join('/');
+
+  // Enforce operation allowlist
+  const method = (req.method || 'GET').toUpperCase();
+  if (!isAllowedOperation(method, bhPath)) {
+    return res.status(403).json({ error: 'Operation not permitted', path: bhPath, method });
+  }
+
+  // For candidate search, restrict to email-only queries (apply flow duplicate detection)
+  if (bhPath === 'search/Candidate' && method === 'GET') {
+    const query = (req.query.query as string) || '';
+    if (!query.startsWith('email:')) {
+      return res.status(403).json({ error: 'Candidate search restricted to email lookup only' });
+    }
+  }
+
   const bhUrl = new URL(bhPath, session.restUrl);
 
   // Forward query params (except portal and path)

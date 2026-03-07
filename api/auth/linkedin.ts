@@ -57,16 +57,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing redirect parameter.' });
   }
 
-  // Validate redirect URL is a real URL
+  // Validate redirect URL is a real URL and on an allowed domain
+  let parsedRedirect: URL;
   try {
-    new URL(redirectUrl);
+    parsedRedirect = new URL(redirectUrl);
   } catch {
     return res.status(400).json({ error: 'Invalid redirect URL.' });
   }
 
-  // TODO: When we have a portal database, validate portalId exists
-  // and check that redirectUrl matches the portal's registered domain.
-  // For now, allow any redirect (preview mode).
+  // Redirect allowlist — only our own domains
+  const allowedHosts = [
+    'careersite.appsforstaffing.com',
+    'appsforstaffing.com',
+    'tonic-career-portal.vercel.app',
+    'localhost',
+  ];
+  const redirectHost = parsedRedirect.hostname.toLowerCase();
+  if (!allowedHosts.some(h => redirectHost === h || redirectHost.endsWith(`.${h}`))) {
+    return res.status(403).json({ error: 'Redirect URL not on an allowed domain.' });
+  }
 
   const state = createState(portalId, jobId, redirectUrl);
 
