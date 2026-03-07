@@ -28,6 +28,8 @@ interface PortalConfig {
   customCss?: string;
   portalId?: string;
   apiMode?: 'public' | 'rest';
+  cardBorderRadius?: string;
+  labels?: { heading?: string };
   service?: { corpToken?: string; swimlane?: string };
 }
 
@@ -81,6 +83,8 @@ function applyPortalConfig(config: PortalConfig) {
     privacyPolicyUrl: config.privacyPolicyUrl || '',
     portalId: config.portalId,
     apiMode: config.apiMode || 'public',
+    cardBorderRadius: config.cardBorderRadius,
+    labels: config.labels,
     service: {
       swimlane: config.swimlane,
       corpToken: config.corpToken,
@@ -345,6 +349,8 @@ export default function LivePortal() {
         customCss: raw.customCss,
         portalId: id,
         apiMode: raw.apiMode || 'public',
+        cardBorderRadius: raw.cardBorderRadius,
+        labels: raw.labels,
       };
       applyPortalConfig(portalConfig);
       setConfig(portalConfig);

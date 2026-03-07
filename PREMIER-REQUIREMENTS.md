@@ -130,13 +130,40 @@ OSCP: `oscp-premier-careers.pages.dev`
 
 ## Priority Order (Suggested)
 
-1. ~~Get jobs showing with chips~~ (blocked on jobType field error — FIXED)
-2. Rounded corners (quick CSS win)
-3. "Explore Jobs" heading (quick config)
-4. Company description on job detail
-5. Remote Status + Employment Type filters
-6. General Apply button
-7. Apply form: Source + Employment Preference fields
-8. Apply form: submit to REST API with status logic
-9. Custom footer
-10. Cancel button styling on modal
+### Batch 1 — Quick Config Wins
+1. ~~Get jobs showing with chips~~ ✅ DONE
+2. ~~Guard empty location data~~ ✅ DONE
+3. Rounded corners (cardBorderRadius config)
+4. "Explore Jobs" heading (labels.heading config)
+5. Cancel button styling (accentColor)
+
+### Batch 2 — Data Display (proxy data already flows)
+6. Company description on job detail page
+7. Remote Status filter (onSite field)
+8. Employment Type filter (with optional value restriction)
+
+### Batch 3 — Apply Form (biggest lift)
+9. REST API candidate creation (POST /entity/Candidate)
+10. Source + Employment Preference custom fields
+11. General Apply button (non-job-specific)
+12. Candidate status logic (New Lead / preserve existing)
+13. Custom footer
+
+---
+
+## Product Roadmap (All Clients)
+
+Features that go beyond Premier's specific requests — platform-level capabilities.
+
+- [ ] **Multi-language support** — i18n for all UI strings (filters, buttons, headings, apply form labels). Language selector or auto-detect from browser. OSCP had `languageDropdownOptions` in config.json5 but it was barely functional.
+- [ ] **Job alerts / saved searches** — candidate subscribes to filter criteria, gets email when new jobs match
+- [ ] **Analytics dashboard** — page views, apply clicks, source attribution per portal
+- [ ] **Stripe billing integration** — self-signup, auto-provisioning on payment
+- [ ] **WordPress plugin** — iframe wrapper with shortcode, auto-resize
+- [ ] **Email notifications** — Resend integration, notify recruiters on apply
+- [ ] **Share to LinkedIn** button on job detail (LinkedIn product already enabled)
+- [ ] **Indeed XML feed customization** — per-client field selection, category filters
+- [ ] **A/B testing** — compare apply rates across different layouts/colors
+- [ ] **Resume upload** (optional) — for clients who want traditional apply alongside quick apply
+- [ ] **Custom domain mapping** — CNAME portal.clientdomain.com to our infrastructure
+- [ ] **Static export pipeline** — generate standalone HTML/JS/CSS bundle for $199 tier clients

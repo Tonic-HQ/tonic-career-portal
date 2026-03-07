@@ -63,6 +63,13 @@ export interface PortalConfig {
   portalId?: string;
   /** API mode: 'public' (default) uses Bullhorn public API, 'rest' uses server-side proxy with full credentials */
   apiMode?: 'public' | 'rest';
+  /** Border radius for job cards (e.g., '20px', '12px', '0'). Defaults to '8px'. */
+  cardBorderRadius?: string;
+  /** Customizable UI labels */
+  labels?: {
+    /** Main heading above job list. Defaults to "Open Positions" */
+    heading?: string;
+  };
   service: {
     swimlane: string;
     corpToken: string;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { searchJobs, getAllJobs } from '../api';
+import { loadConfig } from '../config';
 import type { Job } from '../demo-data';
 import { captureAttribution } from '../utils/attribution';
 import { IconChip, TextChip, RangeChip, ExperienceChip, LocationIcon, DollarIcon, RemoteIcon } from './JobChip';
@@ -38,16 +39,19 @@ function computeCounts(jobs: Job[]): FilterCounts {
 }
 
 function JobCard({ job }: { job: Job }) {
+  const config = loadConfig();
   const locationParts = [job.address.city, job.address.state].filter(Boolean);
   const locationStr = job.address.state === 'Remote'
     ? 'Remote'
     : locationParts.length > 0 ? locationParts.join(', ') : '';
   const descriptionPreview = stripHtml(job.publicDescription);
+  const borderRadius = config.cardBorderRadius || '8px';
 
   return (
     <a
       href={`/jobs/${job.id}`}
-      className="block bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-5 hover:border-gray-300 group"
+      className="block bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 p-5 hover:border-gray-300 group"
+      style={{ borderRadius }}
     >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
@@ -383,7 +387,7 @@ export default function JobListPage() {
             {/* Results header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">
-                Open Positions
+                {loadConfig().labels?.heading || 'Open Positions'}
                 {!loading && (
                   <span className="ml-2 text-base font-normal text-gray-500">({total})</span>
                 )}
