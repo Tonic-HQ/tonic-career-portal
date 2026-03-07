@@ -5,6 +5,7 @@ import ApplyModal from './ApplyModal';
 import { consumeLinkedInProfile } from '../utils/linkedin';
 import type { LinkedInProfile } from '../utils/linkedin';
 import { captureAttribution } from '../utils/attribution';
+import { IconChip, TextChip, RangeChip, ExperienceChip, LocationIcon, DollarIcon, RemoteIcon } from './JobChip';
 
 interface Props {
   job: Job;
@@ -186,54 +187,29 @@ export default function JobDetailView({ job }: Props) {
                 </h1>
               </div>
 
-              {/* Meta row */}
-              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                {locationStr && (
-                <span className="flex items-center gap-1.5">
-                  <svg
-                    className="w-4 h-4 flex-shrink-0"
-                    style={{ color: 'var(--color-primary)', opacity: 0.7 }}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {locationStr}
-                </span>
-                )}
-
-                <span className="flex items-center gap-1.5">
-                  <svg
-                    className="w-4 h-4 flex-shrink-0"
-                    style={{ color: 'var(--color-primary)', opacity: 0.7 }}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  {job.publishedCategory.name}
-                </span>
-
-                {job.salary && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold bg-emerald-500 text-white shadow-sm shadow-emerald-200">
-                    <svg className="w-3.5 h-3.5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {job.salary}
-                  </span>
-                )}
-
-                <span className="flex items-center gap-1.5 text-gray-400 text-xs">
-                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Posted {formatDate(job.dateLastPublished)}
-                </span>
+              {/* Chips — same as job list cards */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {locationStr && <IconChip label={locationStr} icon={<LocationIcon />} />}
+                {job.onSite && <IconChip label={job.onSite} icon={<RemoteIcon />} />}
+                <TextChip label={job.employmentType} />
+                <TextChip label={job.publishedCategory.name} />
+                {(job.salaryLow || job.salaryHigh) ? (
+                  <RangeChip
+                    low={job.salaryLow}
+                    high={job.salaryHigh}
+                    unit={job.salaryUnit || undefined}
+                    icon={<DollarIcon />}
+                  />
+                ) : (job.payRate || job.payRateMax) ? (
+                  <RangeChip
+                    low={job.payRate}
+                    high={job.payRateMax}
+                    unit={job.salaryUnit || 'Per Hour'}
+                    icon={<DollarIcon />}
+                  />
+                ) : null}
+                <ExperienceChip years={job.yearsRequired || 0} />
+                <TextChip label={`Posted ${formatDate(job.dateLastPublished)}`} />
               </div>
             </div>
 
