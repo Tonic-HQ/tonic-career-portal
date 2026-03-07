@@ -54,7 +54,8 @@ function normalizeBullhornJob(raw: any): Job {
 }
 
 // REST API fields for Pro tier portals (fetched via /api/bh/ proxy)
-const REST_FIELDS = 'id,title,publishedCategory(id,name),address(city,state,countryName,zip),employmentType,salary,customFloat1,payRate,customFloat2,salaryUnit,dateLastPublished,publicDescription,benefits,onSite,yearsRequired,jobType,clientCorporation(id,name,companyDescription)';
+// Note: jobType is not a standard Bullhorn field — removed after 400 error on Premier's instance
+const REST_FIELDS = 'id,title,publishedCategory(id,name),address(city,state,countryName,zip),employmentType,salary,customFloat1,payRate,customFloat2,salaryUnit,dateLastPublished,publicDescription,benefits,onSite,yearsRequired,clientCorporation(id,name,companyDescription)';
 
 // Cache all jobs in memory to avoid re-fetching on every filter change
 let _allJobsCache: Job[] | null = null;
