@@ -1,0 +1,68 @@
+{
+	"name": "bullhorn-auth-client",
+	"version": "3.0.0",
+	"description": "Lightweight Bullhorn authentication client: ping, refresh, and full login to obtain BhRestToken and restUrl.",
+	"packageManager": "pnpm@10.15.1",
+	"main": "index.js",
+	"types": "index.d.ts",
+	"exports": {
+		".": {
+			"import": "./index.mjs",
+			"require": "./index.js",
+			"types": "./index.d.ts"
+		}
+	},
+	"files": [
+		"index.js",
+		"index.mjs",
+		"index.d.ts",
+		"examples/",
+		"README.md",
+		"LICENSE"
+	],
+	"sideEffects": false,
+	"license": "MIT",
+	"keywords": [
+		"bullhorn",
+		"auth",
+		"oauth2",
+		"rest",
+		"token"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ddonathan/bullhorn-auth-client.git"
+	},
+	"bugs": {
+		"url": "https://github.com/ddonathan/bullhorn-auth-client/issues"
+	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"test": "jest",
+		"test:watch": "jest --watch",
+		"test:coverage": "jest --coverage",
+		"example:api": "node examples/api-sample.js",
+		"example:universal": "node examples/universal-login.js",
+		"example:smart": "node examples/smart-login.js"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"jest": "^29.7.0"
+	},
+	"peerDependencies": {
+		"dotenv": "^16.0.0"
+	},
+	"peerDependenciesMeta": {
+		"dotenv": {
+			"optional": true
+		}
+	},
+	"dependencies": {}
+}
