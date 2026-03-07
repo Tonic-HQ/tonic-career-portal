@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Job } from '../demo-data';
+import { loadConfig } from '../config';
 import ApplyModal from './ApplyModal';
 import { consumeLinkedInProfile } from '../utils/linkedin';
 import type { LinkedInProfile } from '../utils/linkedin';
@@ -41,6 +42,7 @@ const BENEFIT_COLORS = [
 ];
 
 export default function JobDetailView({ job }: Props) {
+  const config = loadConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -284,7 +286,7 @@ export default function JobDetailView({ job }: Props) {
             </div>
           )}
 
-          {job.clientCorporation?.companyDescription && (
+          {job.clientCorporation?.companyDescription && !config.hideClientName && (
             <div className="mt-8 pt-6 border-t border-gray-100">
               <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-[0.1em] flex items-center gap-2">
                 <span className="w-1 h-3.5 rounded-full inline-block" style={{ backgroundColor: 'var(--color-accent)' }} />
@@ -293,6 +295,15 @@ export default function JobDetailView({ job }: Props) {
               <div
                 className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0"
                 dangerouslySetInnerHTML={{ __html: job.clientCorporation.companyDescription }}
+              />
+            </div>
+          )}
+
+          {config.jobDescriptionFooter && (
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <div
+                className="text-gray-500 text-sm leading-[1.8] [&>p]:mb-3 [&>p:last-child]:mb-0"
+                dangerouslySetInnerHTML={{ __html: config.jobDescriptionFooter }}
               />
             </div>
           )}

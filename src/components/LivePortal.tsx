@@ -29,6 +29,8 @@ interface PortalConfig {
   portalId?: string;
   apiMode?: 'public' | 'rest';
   cardBorderRadius?: string;
+  hideClientName?: boolean;
+  jobDescriptionFooter?: string;
   labels?: { heading?: string };
   service?: { corpToken?: string; swimlane?: string };
 }
@@ -84,6 +86,8 @@ function applyPortalConfig(config: PortalConfig) {
     portalId: config.portalId,
     apiMode: config.apiMode || 'public',
     cardBorderRadius: config.cardBorderRadius,
+    hideClientName: config.hideClientName,
+    jobDescriptionFooter: config.jobDescriptionFooter,
     labels: config.labels,
     service: {
       swimlane: config.swimlane,
@@ -350,6 +354,8 @@ export default function LivePortal() {
         portalId: id,
         apiMode: raw.apiMode || 'public',
         cardBorderRadius: raw.cardBorderRadius,
+        hideClientName: raw.hideClientName,
+        jobDescriptionFooter: raw.jobDescriptionFooter,
         labels: raw.labels,
       };
       applyPortalConfig(portalConfig);
