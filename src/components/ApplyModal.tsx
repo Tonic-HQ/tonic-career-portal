@@ -308,7 +308,8 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
                   />
                 </div>
 
-                {/* LinkedIn URL field — all tiers */}
+                {/* LinkedIn URL field */}
+                {config.applyForm.showLinkedIn !== false && (
                 <div>
                   <label htmlFor="linkedInUrl" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
                     LinkedIn Profile
@@ -331,6 +332,7 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
                     />
                   </div>
                 </div>
+                )}
 
                 {config.applyForm.showPhone && (
                   <div>
@@ -350,17 +352,77 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
                   </div>
                 )}
 
-                {config.applyForm.mode === 'full' && (
+                {/* Custom fields from portal config */}
+                {config.applyForm.customFields?.map((field) => (
+                  <div key={field.bullhornField}>
+                    <label htmlFor={`custom-${field.bullhornField}`} className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                      {field.label}
+                      {field.required && <span className="text-red-400 normal-case tracking-normal font-normal ml-1">*</span>}
+                    </label>
+                    {field.type === 'select' ? (
+                      <select
+                        id={`custom-${field.bullhornField}`}
+                        name={field.bullhornField}
+                        required={field.required}
+                        className={inputClass}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>{field.placeholder || `Select ${field.label}`}</option>
+                        {field.options?.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : field.type === 'textarea' ? (
+                      <textarea
+                        id={`custom-${field.bullhornField}`}
+                        name={field.bullhornField}
+                        required={field.required}
+                        className={`${inputClass} min-h-[80px]`}
+                        placeholder={field.placeholder}
+                        rows={3}
+                        onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                        onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                      />
+                    ) : field.type === 'checkbox' ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`custom-${field.bullhornField}`}
+                          name={field.bullhornField}
+                          className="h-4 w-4 rounded border-gray-300"
+                          style={{ accentColor: 'var(--color-primary)' }}
+                        />
+                        <label htmlFor={`custom-${field.bullhornField}`} className="text-sm text-gray-600">
+                          {field.placeholder || field.label}
+                        </label>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        id={`custom-${field.bullhornField}`}
+                        name={field.bullhornField}
+                        required={field.required}
+                        className={inputClass}
+                        placeholder={field.placeholder}
+                        onFocus={e => { e.currentTarget.style.boxShadow = inputFocusStyle; }}
+                        onBlur={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {/* Resume upload — configurable: off, optional, required */}
+                {(config.applyForm.resume || 'off') !== 'off' && (
                   <div>
                     <label htmlFor="resume" className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                      Resume {config.applyForm.resumeRequired && <span className="text-red-400 normal-case tracking-normal font-normal">*</span>}
+                      Resume {config.applyForm.resume === 'required' && <span className="text-red-400 normal-case tracking-normal font-normal">*</span>}
                     </label>
                     <input
                       type="file"
                       id="resume"
                       name="resume"
                       accept=".pdf,.doc,.docx,.txt"
-                      required={config.applyForm.resumeRequired}
+                      required={config.applyForm.resume === 'required'}
                       className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-400 bg-white file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:text-white transition-all cursor-pointer"
                       style={{ '--file-bg': 'var(--color-primary)' } as React.CSSProperties}
                     />

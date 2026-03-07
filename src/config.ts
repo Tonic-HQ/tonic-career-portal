@@ -77,8 +77,13 @@ export interface PortalConfig {
   };
   applyForm: {
     mode: 'quick' | 'full';
-    resumeRequired: boolean;
+    /** Resume upload: 'off' (hidden), 'optional' (shown but not required), 'required' (must upload) */
+    resume: 'off' | 'optional' | 'required';
+    /** @deprecated Use resume field instead */
+    resumeRequired?: boolean;
     showPhone: boolean;
+    /** Show LinkedIn URL field */
+    showLinkedIn?: boolean;
     /** Additional custom fields to show on the apply form */
     customFields?: ApplyFormField[];
   };
@@ -103,8 +108,9 @@ export const defaultConfig: PortalConfig = {
   },
   applyForm: {
     mode: 'quick',
-    resumeRequired: false,
+    resume: 'optional',
     showPhone: true,
+    showLinkedIn: true,
     customFields: [],
   },
   fieldMappings: {
