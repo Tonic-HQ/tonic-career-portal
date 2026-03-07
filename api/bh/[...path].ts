@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-// @ts-ignore
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 const { loginToBullhorn } = require('bullhorn-auth-client');
 
 function getSupabase() {
