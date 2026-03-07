@@ -56,6 +56,8 @@ export interface PortalConfig {
   fontFamily: string;
   /** Custom font files to load (if fontFamily requires non-Google fonts) */
   customFont?: CustomFont;
+  /** Custom CSS overrides (injected into the page) */
+  customCss?: string;
   darkMode: boolean;
   service: {
     swimlane: string;

@@ -25,6 +25,7 @@ interface PortalConfig {
   showHeader?: boolean;
   fontFamily?: string;
   customFont?: CustomFont;
+  customCss?: string;
   service?: { corpToken?: string; swimlane?: string };
 }
 
@@ -95,6 +96,16 @@ function applyPortalConfig(config: PortalConfig) {
     document.body.style.fontFamily = `'${config.customFont.family}', sans-serif`;
   } else if (config.fontFamily) {
     document.body.style.fontFamily = config.fontFamily;
+  }
+
+  // Inject custom CSS if configured
+  if (config.customCss) {
+    const existingCustomCss = document.getElementById('tonic-custom-css');
+    if (existingCustomCss) existingCustomCss.remove();
+    const customStyle = document.createElement('style');
+    customStyle.id = 'tonic-custom-css';
+    customStyle.textContent = config.customCss;
+    document.head.appendChild(customStyle);
   }
 
   document.title = `${config.companyName} — Careers`;
@@ -327,6 +338,7 @@ export default function LivePortal() {
         showHeader: raw.showHeader,
         fontFamily: raw.fontFamily,
         customFont: raw.customFont,
+        customCss: raw.customCss,
       };
       applyPortalConfig(portalConfig);
       setConfig(portalConfig);
