@@ -1,6 +1,7 @@
 import type { Job } from './demo-data';
 import { DEMO_JOBS } from './demo-data';
 import { loadConfig } from './config';
+import { formatSessionActivity } from './utils/attribution';
 
 export interface SearchParams {
   query?: string;
@@ -258,6 +259,15 @@ function generateApplicationSummary(
     if (eeoVeteran) lines.push(`Veteran Status: ${eeoVeteran}`);
     if (eeoDisability) lines.push(`Disability Status: ${eeoDisability}`);
   }
+
+  // Session activity
+  try {
+    const sessionInfo = formatSessionActivity();
+    if (sessionInfo) {
+      lines.push('', 'SESSION ACTIVITY', '-'.repeat(30), '');
+      lines.push(sessionInfo);
+    }
+  } catch { /* SSR guard */ }
 
   lines.push('', '-'.repeat(30));
   lines.push('Submitted via Tonic Career Portal');

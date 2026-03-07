@@ -126,6 +126,74 @@ export function captureAttribution(): void {
   } catch { /* quota exceeded */ }
 }
 
+// ── Session Activity Tracking ──
+
+const ACTIVITY_KEY = 'tonic_session_activity';
+
+interface SessionActivity {
+  jobsViewed: { id: number; title: string; viewedAt: string }[];
+  pageViews: number;
+  sessionStart: string;
+}
+
+function getActivity(): SessionActivity {
+  if (typeof sessionStorage === 'undefined') return { jobsViewed: [], pageViews: 0, sessionStart: new Date().toISOString() };
+  try {
+    const stored = sessionStorage.getItem(ACTIVITY_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch { /* */ }
+  return { jobsViewed: [], pageViews: 0, sessionStart: new Date().toISOString() };
+}
+
+function saveActivity(activity: SessionActivity) {
+  if (typeof sessionStorage === 'undefined') return;
+  try { sessionStorage.setItem(ACTIVITY_KEY, JSON.stringify(activity)); } catch { /* */ }
+}
+
+/** Track a page view. Call on every page/route change. */
+export function trackPageView(): void {
+  const activity = getActivity();
+  activity.pageViews++;
+  saveActivity(activity);
+}
+
+/** Track a job view. Call when a job detail page loads. */
+export function trackJobView(jobId: number, title: string): void {
+  const activity = getActivity();
+  // Don't duplicate if they already viewed this job
+  if (!activity.jobsViewed.some(j => j.id === jobId)) {
+    activity.jobsViewed.push({ id: jobId, title, viewedAt: new Date().toISOString() });
+  }
+  saveActivity(activity);
+}
+
+/** Get session duration in minutes */
+export function getSessionDuration(): number {
+  const activity = getActivity();
+  const start = new Date(activity.sessionStart).getTime();
+  const now = Date.now();
+  return Math.round((now - start) / 60000);
+}
+
+/** Format session activity for application summary */
+export function formatSessionActivity(): string {
+  const activity = getActivity();
+  const duration = getSessionDuration();
+  const lines: string[] = [];
+
+  lines.push(`Time on site: ${duration < 1 ? 'Less than 1 minute' : `${duration} minute${duration === 1 ? '' : 's'}`}`);
+  lines.push(`Pages viewed: ${activity.pageViews}`);
+
+  if (activity.jobsViewed.length > 0) {
+    lines.push(`Jobs viewed (${activity.jobsViewed.length}):`);
+    for (const job of activity.jobsViewed) {
+      lines.push(`  - ${job.title} (#${job.id})`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
 /** Retrieve stored attribution data */
 export function getAttribution(): Attribution | null {
   if (typeof sessionStorage === 'undefined') return null;

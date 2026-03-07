@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { searchJobs, getAllJobs } from '../api';
 import { loadConfig } from '../config';
 import type { Job } from '../demo-data';
-import { captureAttribution } from '../utils/attribution';
+import { captureAttribution, trackPageView } from '../utils/attribution';
 import { IconChip, TextChip, RangeChip, ExperienceChip, LocationIcon, DollarIcon, RemoteIcon } from './JobChip';
 import ApplyModal from './ApplyModal';
 
@@ -240,6 +240,7 @@ export default function JobListPage() {
   useEffect(() => {
     // Capture attribution on first page load
     captureAttribution();
+    trackPageView();
 
     fetchJobs({ query, categories, states, cities, employmentTypes, onSiteOptions, page });
     getAllJobs().then((all) => {

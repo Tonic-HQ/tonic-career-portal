@@ -4,7 +4,7 @@ import { loadConfig } from '../config';
 import ApplyModal from './ApplyModal';
 import { consumeLinkedInProfile } from '../utils/linkedin';
 import type { LinkedInProfile } from '../utils/linkedin';
-import { captureAttribution } from '../utils/attribution';
+import { captureAttribution, trackPageView, trackJobView } from '../utils/attribution';
 import { IconChip, TextChip, RangeChip, ExperienceChip, LocationIcon, DollarIcon, RemoteIcon } from './JobChip';
 
 interface Props {
@@ -51,8 +51,10 @@ export default function JobDetailView({ job }: Props) {
   const [linkedInProfile, setLinkedInProfile] = useState<LinkedInProfile | null>(null);
 
   useEffect(() => {
-    // Capture attribution
+    // Capture attribution and track activity
     captureAttribution();
+    trackPageView();
+    trackJobView(job.id, job.title);
 
     if (typeof localStorage !== 'undefined') {
       setAlreadyApplied(localStorage.getItem(`applied_${job.id}`) === 'true');
