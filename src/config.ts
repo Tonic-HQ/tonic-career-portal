@@ -104,6 +104,13 @@ export interface PortalConfig {
     submissionStatus?: string;
     /** Show general Apply Now button on job list (not tied to a specific job). Default: true for REST portals */
     generalApply?: boolean;
+    /** EEO voluntary self-identification fields. Each can be enabled/disabled independently. */
+    eeo?: {
+      gender?: boolean;
+      race?: boolean;
+      veteran?: boolean;
+      disability?: boolean;
+    };
   };
   /** Maps apply form fields to Bullhorn candidate entity fields */
   fieldMappings: FieldMappings;

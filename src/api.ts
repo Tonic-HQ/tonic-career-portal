@@ -233,12 +233,30 @@ function generateApplicationSummary(
   if (linkedInUrl) lines.push(`LinkedIn: ${linkedInUrl}`);
 
   // Include any additional custom fields
-  const knownFields = new Set(['firstName', 'lastName', 'email', 'phone', 'linkedInUrl', 'source', 'attributionNote', 'appliedViaLinkedIn', 'resume']);
+  const knownFields = new Set(['firstName', 'lastName', 'email', 'phone', 'linkedInUrl', 'source', 'attributionNote', 'appliedViaLinkedIn', 'resume', 'eeoGender', 'eeoRace', 'eeoVeteran', 'eeoDisability']);
+  const customEntries: string[] = [];
   for (const [key, value] of formData.entries()) {
     if (!knownFields.has(key) && typeof value === 'string' && value.trim()) {
       const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-      lines.push(`${label}: ${value}`);
+      customEntries.push(`${label}: ${value}`);
     }
+  }
+  if (customEntries.length > 0) {
+    lines.push('', 'ADDITIONAL INFORMATION', '-'.repeat(30), '');
+    lines.push(...customEntries);
+  }
+
+  // EEO Voluntary Self-Identification
+  const eeoGender = (formData.get('eeoGender') as string) || '';
+  const eeoRace = (formData.get('eeoRace') as string) || '';
+  const eeoVeteran = (formData.get('eeoVeteran') as string) || '';
+  const eeoDisability = (formData.get('eeoDisability') as string) || '';
+  if (eeoGender || eeoRace || eeoVeteran || eeoDisability) {
+    lines.push('', 'VOLUNTARY SELF-IDENTIFICATION (EEO)', '-'.repeat(30), '');
+    if (eeoGender) lines.push(`Gender: ${eeoGender}`);
+    if (eeoRace) lines.push(`Race/Ethnicity: ${eeoRace}`);
+    if (eeoVeteran) lines.push(`Veteran Status: ${eeoVeteran}`);
+    if (eeoDisability) lines.push(`Disability Status: ${eeoDisability}`);
   }
 
   lines.push('', '-'.repeat(30));

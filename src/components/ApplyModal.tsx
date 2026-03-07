@@ -412,6 +412,67 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
                   </div>
                 ))}
 
+                {/* EEO Voluntary Self-Identification */}
+                {config.applyForm.eeo && (config.applyForm.eeo.gender || config.applyForm.eeo.race || config.applyForm.eeo.veteran || config.applyForm.eeo.disability) && (
+                  <div className="pt-4 mt-2 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Voluntary Self-Identification</p>
+                    <p className="text-xs text-gray-400 font-light mb-4 leading-relaxed">
+                      This information is voluntary and will not affect your candidacy. It helps us track our equal employment opportunity efforts.
+                    </p>
+
+                    {config.applyForm.eeo.gender && (
+                      <div className="mb-4">
+                        <label htmlFor="eeo-gender" className="block text-xs font-medium text-gray-500 mb-1.5">Gender</label>
+                        <select id="eeo-gender" name="eeoGender" className={inputClass} defaultValue="">
+                          <option value="">Prefer not to say</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Non-Binary">Non-Binary</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {config.applyForm.eeo.race && (
+                      <div className="mb-4">
+                        <label htmlFor="eeo-race" className="block text-xs font-medium text-gray-500 mb-1.5">Race / Ethnicity</label>
+                        <select id="eeo-race" name="eeoRace" className={inputClass} defaultValue="">
+                          <option value="">Prefer not to say</option>
+                          <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
+                          <option value="Asian">Asian</option>
+                          <option value="Black or African American">Black or African American</option>
+                          <option value="Hispanic or Latino">Hispanic or Latino</option>
+                          <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
+                          <option value="White">White</option>
+                          <option value="Two or More Races">Two or More Races</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {config.applyForm.eeo.veteran && (
+                      <div className="mb-4">
+                        <label htmlFor="eeo-veteran" className="block text-xs font-medium text-gray-500 mb-1.5">Veteran Status</label>
+                        <select id="eeo-veteran" name="eeoVeteran" className={inputClass} defaultValue="">
+                          <option value="">Prefer not to say</option>
+                          <option value="I am a protected veteran">I am a protected veteran</option>
+                          <option value="I am not a protected veteran">I am not a protected veteran</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {config.applyForm.eeo.disability && (
+                      <div className="mb-4">
+                        <label htmlFor="eeo-disability" className="block text-xs font-medium text-gray-500 mb-1.5">Disability Status</label>
+                        <select id="eeo-disability" name="eeoDisability" className={inputClass} defaultValue="">
+                          <option value="">Prefer not to say</option>
+                          <option value="Yes, I have a disability (or previously had a disability)">Yes, I have a disability (or previously had a disability)</option>
+                          <option value="No, I do not have a disability">No, I do not have a disability</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Resume upload — configurable: off, optional, required */}
                 {(config.applyForm.resume || 'off') !== 'off' && (
                   <div>
