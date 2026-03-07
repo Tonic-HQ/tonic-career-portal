@@ -260,9 +260,12 @@ export async function submitApplication(
   const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'appsforstaffing.com';
   const summary = generateApplicationSummary(jobId, jobTitle || `Job #${jobId}`, formData, portalUrl);
 
+  const candidateStatus = config.applyForm?.candidateStatus || 'New Lead';
+  const submissionStatus = config.applyForm?.submissionStatus || 'New Lead';
+
   if (apiMode === 'rest' && portalId) {
     // Pro tier: use REST API proxy for full field control
-    return submitViaRestApi(jobId, firstName, lastName, email, phone, formData, summary, portalId);
+    return submitViaRestApi(jobId, firstName, lastName, email, phone, formData, summary, portalId, candidateStatus, submissionStatus);
   } else {
     // Standard: use public apply endpoint with generated summary file
     return submitViaPublicApi(jobId, firstName, lastName, email, phone, summary, config);
@@ -319,6 +322,8 @@ async function submitViaRestApi(
   formData: FormData,
   summary: string,
   portalId: string,
+  candidateStatus: string,
+  submissionStatus: string,
 ): Promise<ApplicationResult> {
   // Step 1: Check for existing candidate by email
   const searchUrl = `/api/bh/search/Candidate?portal=${encodeURIComponent(portalId)}&query=${encodeURIComponent(`email:"${email}"`)}&fields=id,firstName,lastName,email,status&count=1`;
@@ -338,7 +343,7 @@ async function submitViaRestApi(
       firstName,
       lastName,
       email,
-      status: 'New Lead',
+      status: candidateStatus,
       source: (formData.get('source') as string) || 'Career Portal',
     };
     if (phone) candidatePayload.phone = phone;
@@ -359,11 +364,11 @@ async function submitViaRestApi(
     candidateId = createData.changedEntityId;
   }
 
-  // Step 3: Create JobSubmission linking candidate to job
+  // Step 3: Create JobSubmission linking candidate to job (as Web Response)
   const submissionPayload = {
     candidate: { id: candidateId },
     jobOrder: { id: jobId },
-    status: 'New Lead',
+    status: submissionStatus,
     source: (formData.get('source') as string) || 'Career Portal',
     dateWebResponse: new Date().getTime(),
   };

@@ -86,6 +86,10 @@ export interface PortalConfig {
     showLinkedIn?: boolean;
     /** Additional custom fields to show on the apply form */
     customFields?: ApplyFormField[];
+    /** Status for new candidates (default: 'New Lead') */
+    candidateStatus?: string;
+    /** Status for job submissions / web responses (default: 'New Lead') */
+    submissionStatus?: string;
   };
   /** Maps apply form fields to Bullhorn candidate entity fields */
   fieldMappings: FieldMappings;
