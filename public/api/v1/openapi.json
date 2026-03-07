@@ -1,0 +1,242 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tonic Career Portal API",
+    "version": "1.0.0",
+    "description": "Manage your career portal configuration, view jobs, check applications, and validate Bullhorn credentials. Designed to work with AI assistants like ChatGPT and Claude.\n\nAuthentication: Include your API key in every request as `Authorization: Bearer tcp_<your_key>`.\n\nAll responses include a `_docs` field linking back to this spec."
+  },
+  "servers": [
+    {
+      "url": "https://careersite.appsforstaffing.com/api/v1",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key starting with tcp_"
+      }
+    }
+  },
+  "paths": {
+    "/portal": {
+      "get": {
+        "operationId": "getPortalConfig",
+        "summary": "Get portal configuration",
+        "description": "Returns the full portal config including branding (colors, fonts, logos), apply form settings, labels, and tier information.",
+        "responses": {
+          "200": {
+            "description": "Portal configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "description": "Portal ID (Crockford Base32)" },
+                    "companyName": { "type": "string" },
+                    "tier": { "type": "string", "enum": ["preview", "starter", "standard", "pro"] },
+                    "config": {
+                      "type": "object",
+                      "description": "Full portal configuration object",
+                      "properties": {
+                        "companyName": { "type": "string", "description": "Company name shown in header" },
+                        "primaryColor": { "type": "string", "description": "Primary brand color (hex, e.g. #2563EB)" },
+                        "accentColor": { "type": "string", "description": "Accent color for CTAs (hex)" },
+                        "logo": { "type": "string", "description": "Logo URL" },
+                        "fontFamily": { "type": "string", "description": "Font family name" },
+                        "cardBorderRadius": { "type": "string", "description": "Border radius for cards (e.g. '12px', '0')" },
+                        "hideClientName": { "type": "boolean", "description": "Hide end-client company names (staffing firms)" },
+                        "jobDescriptionFooter": { "type": "string", "description": "HTML appended to every job description" },
+                        "labels": {
+                          "type": "object",
+                          "properties": {
+                            "heading": { "type": "string", "description": "Main heading text (default: 'Open Positions')" },
+                            "applyButton": { "type": "string", "description": "Apply button text (default: 'Apply Now')" },
+                            "searchPlaceholder": { "type": "string", "description": "Search input placeholder" }
+                          }
+                        },
+                        "applyForm": {
+                          "type": "object",
+                          "properties": {
+                            "resume": { "type": "string", "enum": ["off", "optional", "required"], "description": "Resume upload behavior" },
+                            "showPhone": { "type": "boolean" },
+                            "showLinkedIn": { "type": "boolean" },
+                            "generalApply": { "type": "boolean", "description": "Show general apply button (no specific job)" },
+                            "defaultSource": { "type": "string", "description": "Source field value on Bullhorn Candidate" },
+                            "candidateStatus": { "type": "string", "description": "Status for new candidates" },
+                            "submissionStatus": { "type": "string", "description": "Status for job submissions" },
+                            "customFields": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": { "type": "string" },
+                                  "label": { "type": "string" },
+                                  "type": { "type": "string", "enum": ["text", "textarea", "select", "checkbox"] },
+                                  "required": { "type": "boolean" },
+                                  "options": { "type": "array", "items": { "type": "string" } }
+                                }
+                              }
+                            },
+                            "eeo": {
+                              "type": "object",
+                              "description": "EEO voluntary self-identification fields (each independently toggleable)",
+                              "properties": {
+                                "gender": { "type": "boolean" },
+                                "race": { "type": "boolean" },
+                                "veteran": { "type": "boolean" },
+                                "disability": { "type": "boolean" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updatePortalConfig",
+        "summary": "Update portal configuration",
+        "description": "Deep-merges the provided fields into the existing config. Only send the fields you want to change. Changes are live immediately.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Any config fields to update (deep-merged with existing config)"
+              },
+              "examples": {
+                "changeColor": {
+                  "summary": "Change brand color",
+                  "value": { "primaryColor": "#1e40af" }
+                },
+                "updateApplyForm": {
+                  "summary": "Enable LinkedIn field and phone",
+                  "value": { "applyForm": { "showLinkedIn": true, "showPhone": true } }
+                },
+                "changeHeading": {
+                  "summary": "Change main heading",
+                  "value": { "labels": { "heading": "Join Our Team" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated config"
+          }
+        }
+      }
+    },
+    "/portal/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "summary": "List current job postings",
+        "description": "Returns all active, public job postings from the connected Bullhorn instance.",
+        "responses": {
+          "200": {
+            "description": "Job list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer" },
+                    "jobs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "title": { "type": "string" },
+                          "category": { "type": "string" },
+                          "city": { "type": "string" },
+                          "state": { "type": "string" },
+                          "employmentType": { "type": "string" },
+                          "salary": { "type": "number" },
+                          "salaryUnit": { "type": "string" },
+                          "publishedDate": { "type": "string", "format": "date-time" },
+                          "url": { "type": "string", "format": "uri" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/stats": {
+      "get": {
+        "operationId": "getPortalStats",
+        "summary": "Get portal analytics",
+        "description": "Returns page views, apply clicks, and application counts for the last 30 days.",
+        "responses": {
+          "200": {
+            "description": "Analytics summary"
+          }
+        }
+      }
+    },
+    "/portal/credentials": {
+      "get": {
+        "operationId": "getCredentialStatus",
+        "summary": "Check Bullhorn credential status",
+        "description": "Shows which credentials are configured without revealing secrets. Returns clientId and username (non-sensitive), and boolean flags for clientSecret and password.",
+        "responses": {
+          "200": {
+            "description": "Credential status (secrets are never returned)"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateCredentials",
+        "summary": "Update Bullhorn credentials",
+        "description": "Update one or more credential fields. Values are stored encrypted and never returned. Previous auth tokens are cleared after update.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "clientId": { "type": "string" },
+                  "clientSecret": { "type": "string", "description": "Write-only, never returned" },
+                  "username": { "type": "string" },
+                  "password": { "type": "string", "description": "Write-only, never returned" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/credentials/validate": {
+      "post": {
+        "operationId": "validateCredentials",
+        "summary": "Test Bullhorn connection",
+        "description": "Attempts to authenticate with Bullhorn using stored credentials. Returns success/failure without exposing credential values.",
+        "responses": {
+          "200": {
+            "description": "Validation result with valid: true/false"
+          }
+        }
+      }
+    }
+  }
+}

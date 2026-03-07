@@ -24,6 +24,14 @@
       "destination": "/api/bh/[...path]"
     },
     {
+      "source": "/api/v1/portal/:path*",
+      "destination": "/api/v1/portal"
+    },
+    {
+      "source": "/api/v1/keys",
+      "destination": "/api/v1/keys"
+    },
+    {
       "source": "/jobs/:id(\\d+)",
       "destination": "/job"
     },
