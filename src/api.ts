@@ -27,6 +27,7 @@ function normalizeBullhornJob(raw: any): Job {
       city: raw.address?.city ?? '',
       state: raw.address?.state ?? '',
       country: raw.address?.countryName ?? raw.address?.country ?? 'US',
+      zip: raw.address?.zip ?? '',
     },
     employmentType: raw.employmentType ?? 'Full-Time',
     salary: raw.salary && raw.salary > 0
@@ -35,8 +36,25 @@ function normalizeBullhornJob(raw: any): Job {
     dateLastPublished: raw.dateLastPublished ?? Date.now(),
     publicDescription: raw.publicDescription ?? '',
     benefits: raw.benefits ?? '',
+    // Extended fields (REST API / Pro tier)
+    salaryLow: raw.salary && raw.salary > 0 ? raw.salary : undefined,
+    salaryHigh: raw.customFloat1 && raw.customFloat1 > 0 ? raw.customFloat1 : undefined,
+    payRate: raw.payRate && raw.payRate > 0 ? raw.payRate : undefined,
+    payRateMax: raw.customFloat2 && raw.customFloat2 > 0 ? raw.customFloat2 : undefined,
+    salaryUnit: raw.salaryUnit || undefined,
+    yearsRequired: raw.yearsRequired && raw.yearsRequired > 0 ? raw.yearsRequired : undefined,
+    onSite: raw.onSite || undefined,
+    jobType: raw.jobType || undefined,
+    clientCorporation: raw.clientCorporation?.id ? {
+      id: raw.clientCorporation.id,
+      name: raw.clientCorporation.name ?? '',
+      companyDescription: raw.clientCorporation.companyDescription ?? '',
+    } : undefined,
   };
 }
+
+// REST API fields for Pro tier portals (fetched via /api/bh/ proxy)
+const REST_FIELDS = 'id,title,publishedCategory(id,name),address(city,state,countryName,zip),employmentType,salary,customFloat1,payRate,customFloat2,salaryUnit,dateLastPublished,publicDescription,benefits,onSite,yearsRequired,jobType,clientCorporation(id,name,companyDescription)';
 
 // Cache all jobs in memory to avoid re-fetching on every filter change
 let _allJobsCache: Job[] | null = null;
@@ -70,8 +88,20 @@ export async function getAllJobs(): Promise<Job[]> {
     return _allJobsCache;
   }
 
-  const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
-  const url = `${base}/search/JobOrder?query=${encodeURIComponent('(isOpen:1) AND (isDeleted:0)')}&fields=${config.service.fields}&count=500&sort=-dateLastPublished&showTotalMatched=true`;
+  // Use REST API proxy for Pro tier portals, public API for everyone else
+  const portalId = config.portalId;
+  const apiMode = config.apiMode || 'public';
+  let url: string;
+
+  if (apiMode === 'rest' && portalId) {
+    // Pro tier: fetch through our server-side proxy with full field access
+    url = `/api/bh/search/JobOrder?portal=${encodeURIComponent(portalId)}&query=${encodeURIComponent('(isOpen:1 AND isDeleted:0 AND isPublic:1)')}&fields=${encodeURIComponent(REST_FIELDS)}&count=500&sort=-dateLastPublished&showTotalMatched=true`;
+  } else {
+    // Standard: direct to Bullhorn public API
+    const base = `https://public-rest${config.service.swimlane}.bullhornstaffing.com:443/rest-services/${config.service.corpToken}`;
+    url = `${base}/search/JobOrder?query=${encodeURIComponent('(isOpen:1) AND (isDeleted:0)')}&fields=${config.service.fields}&count=500&sort=-dateLastPublished&showTotalMatched=true`;
+  }
+
   const res = await fetch(url);
   const data = await res.json() as { data?: any[] };
   _allJobsCache = (data.data ?? []).map(normalizeBullhornJob);

@@ -59,6 +59,10 @@ export interface PortalConfig {
   /** Custom CSS overrides (injected into the page) */
   customCss?: string;
   darkMode: boolean;
+  /** Portal ID (Crockford Base32) for API routing */
+  portalId?: string;
+  /** API mode: 'public' (default) uses Bullhorn public API, 'rest' uses server-side proxy with full credentials */
+  apiMode?: 'public' | 'rest';
   service: {
     swimlane: string;
     corpToken: string;

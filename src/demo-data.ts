@@ -2,12 +2,22 @@ export interface Job {
   id: number;
   title: string;
   publishedCategory: { id: number; name: string };
-  address: { city: string; state: string; country: string };
+  address: { city: string; state: string; country: string; zip?: string };
   employmentType: string;
   salary: string;
   dateLastPublished: number;
   publicDescription: string;
   benefits: string;
+  // Extended fields (REST API / Pro tier)
+  salaryLow?: number; // Bullhorn: salary (label: "Salary Low")
+  salaryHigh?: number; // Bullhorn: customFloat1 (label: "Salary High")
+  payRate?: number; // Bullhorn: payRate (label: "Pay Rate Low")
+  payRateMax?: number; // Bullhorn: customFloat2 (label: "Pay Rate Max")
+  salaryUnit?: string; // Bullhorn: salaryUnit (label: "Pay Unit")
+  yearsRequired?: number; // Bullhorn: yearsRequired (label: "Minimum Experience (Years)")
+  onSite?: string; // Bullhorn: onSite (label: "Location Requirements") - "On-Site" | "Remote" | "Hybrid"
+  jobType?: string; // Full Time, Part Time
+  clientCorporation?: { id: number; name: string; companyDescription?: string };
 }
 
 const now = Date.now();

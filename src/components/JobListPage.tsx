@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { searchJobs, getAllJobs } from '../api';
 import type { Job } from '../demo-data';
 import { captureAttribution } from '../utils/attribution';
+import { IconChip, TextChip, RangeChip, ExperienceChip, LocationIcon, DollarIcon, RemoteIcon } from './JobChip';
 
 function formatCardDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString('en-US', {
@@ -61,31 +62,28 @@ function JobCard({ job }: { job: Job }) {
           </p>
         </div>
 
-        {/* Badges */}
+        {/* Chips */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-600 whitespace-nowrap">
-            <svg
-              className="w-3 h-3 flex-shrink-0 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {locationStr}
-          </span>
-          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-600 whitespace-nowrap">
-            {job.employmentType}
-          </span>
-          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-            {formatCardDate(job.dateLastPublished)}
-          </span>
+          <IconChip label={locationStr} icon={<LocationIcon />} />
+          {job.onSite && <IconChip label={job.onSite} icon={<RemoteIcon />} />}
+          <TextChip label={job.employmentType} />
+          {(job.salaryLow || job.salaryHigh) ? (
+            <RangeChip
+              low={job.salaryLow}
+              high={job.salaryHigh}
+              unit={job.salaryUnit || undefined}
+              icon={<DollarIcon />}
+            />
+          ) : (job.payRate || job.payRateMax) ? (
+            <RangeChip
+              low={job.payRate}
+              high={job.payRateMax}
+              unit={job.salaryUnit || "Per Hour"}
+              icon={<DollarIcon />}
+            />
+          ) : null}
+          <ExperienceChip years={job.yearsRequired || 0} />
+          <TextChip label={formatCardDate(job.dateLastPublished)} />
         </div>
       </div>
 

@@ -77,6 +77,8 @@ function applyPortalConfig(config: PortalConfig) {
     primaryColor: config.primaryColor || '#2563EB',
     accentColor: config.linkColor || '#10B981',
     privacyPolicyUrl: config.privacyPolicyUrl || '',
+    portalId: config.portalId,
+    apiMode: config.apiMode || 'public',
     service: {
       swimlane: config.swimlane,
       corpToken: config.corpToken,
@@ -339,6 +341,8 @@ export default function LivePortal() {
         fontFamily: raw.fontFamily,
         customFont: raw.customFont,
         customCss: raw.customCss,
+        portalId: id,
+        apiMode: raw.apiMode || 'public',
       };
       applyPortalConfig(portalConfig);
       setConfig(portalConfig);
