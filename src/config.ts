@@ -65,8 +65,6 @@ export interface PortalConfig {
   apiMode?: 'public' | 'rest';
   /** Border radius for job cards (e.g., '20px', '12px', '0'). Defaults to '8px'. */
   cardBorderRadius?: string;
-  /** Hide client company name and description (common in staffing — end client is confidential) */
-  hideClientName?: boolean;
   /** Standard text appended to every job description (disclaimers, benefits info, EEO statements).
    *  Supports HTML. Applied automatically so it doesn't need to be in every Bullhorn job. */
   jobDescriptionFooter?: string;
