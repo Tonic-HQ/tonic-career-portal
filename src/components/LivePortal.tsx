@@ -26,6 +26,8 @@ interface PortalConfig {
   fontFamily?: string;
   customFont?: CustomFont;
   customCss?: string;
+  portalId?: string;
+  apiMode?: 'public' | 'rest';
   service?: { corpToken?: string; swimlane?: string };
 }
 
