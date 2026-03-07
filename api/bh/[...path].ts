@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const { loginToBullhorn } = require('../lib/bullhorn-auth-client/index.js');
+const { loginToBullhorn } = require('./bullhorn-auth.cjs');
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
