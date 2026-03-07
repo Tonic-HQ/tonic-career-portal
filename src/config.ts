@@ -102,6 +102,8 @@ export interface PortalConfig {
     candidateStatus?: string;
     /** Status for job submissions / web responses (default: 'New Lead') */
     submissionStatus?: string;
+    /** Show general Apply Now button on job list (not tied to a specific job). Default: true for REST portals */
+    generalApply?: boolean;
   };
   /** Maps apply form fields to Bullhorn candidate entity fields */
   fieldMappings: FieldMappings;

@@ -4,6 +4,7 @@ import { loadConfig } from '../config';
 import type { Job } from '../demo-data';
 import { captureAttribution } from '../utils/attribution';
 import { IconChip, TextChip, RangeChip, ExperienceChip, LocationIcon, DollarIcon, RemoteIcon } from './JobChip';
+import ApplyModal from './ApplyModal';
 
 function formatCardDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString('en-US', {
@@ -205,6 +206,7 @@ export default function JobListPage() {
   const [onSiteOptions, setOnSiteOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [generalApplyOpen, setGeneralApplyOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -438,15 +440,29 @@ export default function JobListPage() {
                   </span>
                 )}
               </h2>
-              {hasActiveFilters && !loading && (
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-all"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  Clear filters
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && !loading && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-all"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+                {loadConfig().applyForm?.generalApply !== false && (
+                  <button
+                    onClick={() => setGeneralApplyOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Apply Now
+                  </button>
+                )}
+              </div>
             </div>
 
             {error && (
@@ -585,6 +601,11 @@ export default function JobListPage() {
           </div>
         </div>
       )}
+
+      <ApplyModal
+        isOpen={generalApplyOpen}
+        onClose={() => setGeneralApplyOpen(false)}
+      />
     </div>
   );
 }

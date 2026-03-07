@@ -6,8 +6,8 @@ import { buildLinkedInAuthUrl, consumeLinkedInProfile } from '../utils/linkedin'
 import type { LinkedInProfile } from '../utils/linkedin';
 
 interface Props {
-  jobId: number;
-  jobTitle: string;
+  jobId?: number;
+  jobTitle?: string;
   isOpen: boolean;
   onClose: () => void;
   linkedInProfile?: LinkedInProfile | null;
@@ -118,7 +118,7 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
     try {
       const result = await submitApplication(jobId, formData, jobTitle);
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(`applied_${jobId}`, 'true');
+        if (jobId) localStorage.setItem(`applied_${jobId}`, 'true');
       }
       setStatus('success');
     } catch (err: any) {
@@ -163,9 +163,10 @@ export default function ApplyModal({ jobId, jobTitle, isOpen, onClose, linkedInP
         <div className="flex items-start justify-between px-6 pt-5 pb-4">
           <div>
             <h2 id="modal-title" className="text-xl font-bold text-gray-900 tracking-tight">
-              Apply Now
+              {jobId ? 'Apply Now' : 'Submit Your Information'}
             </h2>
-            <p className="text-sm text-gray-400 font-light mt-0.5 line-clamp-1">{jobTitle}</p>
+            {jobTitle && <p className="text-sm text-gray-400 font-light mt-0.5 line-clamp-1">{jobTitle}</p>}
+            {!jobId && <p className="text-sm text-gray-400 font-light mt-0.5">We'll match you with relevant opportunities</p>}
           </div>
           <button
             onClick={onClose}

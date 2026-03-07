@@ -249,7 +249,7 @@ function generateApplicationSummary(
 }
 
 export async function submitApplication(
-  jobId: number,
+  jobId: number | undefined,
   formData: FormData,
   jobTitle?: string,
 ): Promise<ApplicationResult> {
@@ -270,7 +270,7 @@ export async function submitApplication(
 
   // Generate the application summary file
   const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'appsforstaffing.com';
-  const summary = generateApplicationSummary(jobId, jobTitle || `Job #${jobId}`, formData, portalUrl);
+  const summary = generateApplicationSummary(jobId || 0, jobTitle || (jobId ? `Job #${jobId}` : 'General Application'), formData, portalUrl);
 
   const candidateStatus = config.applyForm?.candidateStatus || 'New Lead';
   const submissionStatus = config.applyForm?.submissionStatus || 'New Lead';
@@ -278,9 +278,12 @@ export async function submitApplication(
   if (apiMode === 'rest' && portalId) {
     // Pro tier: use REST API proxy for full field control
     return submitViaRestApi(jobId, firstName, lastName, email, phone, formData, summary, portalId, candidateStatus, submissionStatus);
-  } else {
-    // Standard: use public apply endpoint with generated summary file
+  } else if (jobId) {
+    // Standard: use public apply endpoint with generated summary file (requires jobId)
     return submitViaPublicApi(jobId, firstName, lastName, email, phone, summary, config);
+  } else {
+    // Public API can't create candidates without a job — no general apply for non-REST
+    throw new Error('General applications require a hosted portal (Pro tier).');
   }
 }
 
@@ -326,7 +329,7 @@ async function submitViaPublicApi(
 }
 
 async function submitViaRestApi(
-  jobId: number,
+  jobId: number | undefined,
   firstName: string,
   lastName: string,
   email: string,
@@ -376,29 +379,34 @@ async function submitViaRestApi(
     candidateId = createData.changedEntityId;
   }
 
-  // Step 3: Create JobSubmission linking candidate to job (as Web Response)
-  const submissionPayload = {
-    candidate: { id: candidateId },
-    jobOrder: { id: jobId },
-    status: submissionStatus,
-    source: (formData.get('source') as string) || 'Career Portal',
-    dateWebResponse: new Date().getTime(),
-  };
+  let jobSubmissionId: number | undefined;
 
-  const subRes = await fetch(`/api/bh/entity/JobSubmission?portal=${encodeURIComponent(portalId)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(submissionPayload),
-  });
-  const subData = await subRes.json();
+  if (jobId) {
+    // Step 3: Create JobSubmission linking candidate to job (as Web Response)
+    const submissionPayload = {
+      candidate: { id: candidateId },
+      jobOrder: { id: jobId },
+      status: submissionStatus,
+      source: (formData.get('source') as string) || 'Career Portal',
+      dateWebResponse: new Date().getTime(),
+    };
 
-  // Step 4: Attach application summary as a file (Note on candidate)
-  const notePayload = {
+    const subRes = await fetch(`/api/bh/entity/JobSubmission?portal=${encodeURIComponent(portalId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(submissionPayload),
+    });
+    const subData = await subRes.json();
+    jobSubmissionId = subData.changedEntityId;
+  }
+
+  // Step 4: Attach application summary as a Note on candidate
+  const notePayload: Record<string, any> = {
     personReference: { id: candidateId },
-    jobOrder: { id: jobId },
-    action: 'Career Portal Application',
+    action: jobId ? 'Career Portal Application' : 'General Career Portal Application',
     comments: summary,
   };
+  if (jobId) notePayload.jobOrder = { id: jobId };
 
   await fetch(`/api/bh/entity/Note?portal=${encodeURIComponent(portalId)}`, {
     method: 'PUT',
@@ -409,6 +417,6 @@ async function submitViaRestApi(
   return {
     candidateId,
     candidateAlreadyExisted,
-    jobSubmissionId: subData.changedEntityId,
+    jobSubmissionId,
   };
 }
