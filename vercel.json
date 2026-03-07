@@ -20,6 +20,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/bh/:path*",
+      "destination": "/api/bh/[...path]"
+    },
+    {
       "source": "/jobs/:id(\\d+)",
       "destination": "/job"
     },
