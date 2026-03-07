@@ -9,7 +9,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const INTERNAL_DOMAINS = ['tonichq.com', 'bellwetherit.com'];
+const INTERNAL_DOMAINS = ['tonichq.com'];
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
