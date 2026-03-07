@@ -283,6 +283,19 @@ export default function JobDetailView({ job }: Props) {
               </div>
             </div>
           )}
+
+          {job.clientCorporation?.companyDescription && (
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-[0.1em] flex items-center gap-2">
+                <span className="w-1 h-3.5 rounded-full inline-block" style={{ backgroundColor: 'var(--color-accent)' }} />
+                About {job.clientCorporation.name || 'the Company'}
+              </h3>
+              <div
+                className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0"
+                dangerouslySetInnerHTML={{ __html: job.clientCorporation.companyDescription }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Share section */}

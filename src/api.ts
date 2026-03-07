@@ -8,6 +8,7 @@ export interface SearchParams {
   states?: string[];
   cities?: string[];
   employmentTypes?: string[];
+  onSiteOptions?: string[];
   sort?: 'date' | 'title';
   page?: number;
   pageSize?: number;
@@ -137,6 +138,9 @@ export async function searchJobs(params: SearchParams): Promise<SearchResult> {
   }
   if (params.employmentTypes && params.employmentTypes.length > 0) {
     jobs = jobs.filter(j => params.employmentTypes!.includes(j.employmentType));
+  }
+  if (params.onSiteOptions && params.onSiteOptions.length > 0) {
+    jobs = jobs.filter(j => j.onSite && params.onSiteOptions!.includes(j.onSite));
   }
 
   // Sort

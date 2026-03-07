@@ -21,12 +21,16 @@ interface FilterCounts {
   categories: Record<string, number>;
   states: Record<string, number>;
   cities: Record<string, number>;
+  employmentTypes: Record<string, number>;
+  onSiteOptions: Record<string, number>;
 }
 
 function computeCounts(jobs: Job[]): FilterCounts {
   const categories: Record<string, number> = {};
   const states: Record<string, number> = {};
   const cities: Record<string, number> = {};
+  const employmentTypes: Record<string, number> = {};
+  const onSiteOptions: Record<string, number> = {};
   for (const job of jobs) {
     const cat = job.publishedCategory?.name;
     if (cat) categories[cat] = (categories[cat] ?? 0) + 1;
@@ -34,8 +38,12 @@ function computeCounts(jobs: Job[]): FilterCounts {
     if (st) states[st] = (states[st] ?? 0) + 1;
     const city = job.address?.city;
     if (city && city !== job.address?.state) cities[city] = (cities[city] ?? 0) + 1;
+    const et = job.employmentType;
+    if (et) employmentTypes[et] = (employmentTypes[et] ?? 0) + 1;
+    const os = job.onSite;
+    if (os) onSiteOptions[os] = (onSiteOptions[os] ?? 0) + 1;
   }
-  return { categories, states, cities };
+  return { categories, states, cities, employmentTypes, onSiteOptions };
 }
 
 function JobCard({ job }: { job: Job }) {
@@ -180,22 +188,28 @@ export default function JobListPage() {
     categories: {},
     states: {},
     cities: {},
+    employmentTypes: {},
+    onSiteOptions: {},
   });
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [allStates, setAllStates] = useState<string[]>([]);
   const [allCities, setAllCities] = useState<string[]>([]);
+  const [allEmploymentTypes, setAllEmploymentTypes] = useState<string[]>([]);
+  const [allOnSiteOptions, setAllOnSiteOptions] = useState<string[]>([]);
 
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
+  const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
+  const [onSiteOptions, setOnSiteOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchJobs = useCallback(
-    async (params: { query: string; categories: string[]; states: string[]; cities: string[]; page: number }) => {
+    async (params: { query: string; categories: string[]; states: string[]; cities: string[]; employmentTypes: string[]; onSiteOptions: string[]; page: number }) => {
       setLoading(true);
       setError(null);
       try {
@@ -204,6 +218,8 @@ export default function JobListPage() {
           categories: params.categories.length > 0 ? params.categories : undefined,
           states: params.states.length > 0 ? params.states : undefined,
           cities: params.cities.length > 0 ? params.cities : undefined,
+          employmentTypes: params.employmentTypes.length > 0 ? params.employmentTypes : undefined,
+          onSiteOptions: params.onSiteOptions.length > 0 ? params.onSiteOptions : undefined,
           sort: 'date',
           page: params.page,
           pageSize: PAGE_SIZE,
@@ -223,25 +239,27 @@ export default function JobListPage() {
     // Capture attribution on first page load
     captureAttribution();
 
-    fetchJobs({ query, categories, states, cities, page });
+    fetchJobs({ query, categories, states, cities, employmentTypes, onSiteOptions, page });
     getAllJobs().then((all) => {
       const counts = computeCounts(all);
       setFilterCounts(counts);
       setAllCategories(Object.keys(counts.categories).sort());
       setAllStates(Object.keys(counts.states).sort());
       setAllCities(Object.keys(counts.cities).sort());
+      setAllEmploymentTypes(Object.keys(counts.employmentTypes).sort());
+      setAllOnSiteOptions(Object.keys(counts.onSiteOptions).sort());
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     setPage(1);
-    fetchJobs({ query, categories, states, cities, page: 1 });
+    fetchJobs({ query, categories, states, cities, employmentTypes, onSiteOptions, page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories, states, cities]);
+  }, [categories, states, cities, employmentTypes, onSiteOptions]);
 
   useEffect(() => {
-    fetchJobs({ query, categories, states, cities, page });
+    fetchJobs({ query, categories, states, cities, employmentTypes, onSiteOptions, page });
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
@@ -251,7 +269,7 @@ export default function JobListPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      fetchJobs({ query: value, categories, states, cities, page: 1 });
+      fetchJobs({ query: value, categories, states, cities, employmentTypes, onSiteOptions, page: 1 });
     }, 300);
   }
 
@@ -260,11 +278,13 @@ export default function JobListPage() {
     setCategories([]);
     setStates([]);
     setCities([]);
+    setEmploymentTypes([]);
+    setOnSiteOptions([]);
     setPage(1);
-    fetchJobs({ query: '', categories: [], states: [], cities: [], page: 1 });
+    fetchJobs({ query: '', categories: [], states: [], cities: [], employmentTypes: [], onSiteOptions: [], page: 1 });
   }
 
-  const hasActiveFilters = Boolean(query || categories.length || states.length || cities.length);
+  const hasActiveFilters = Boolean(query || categories.length || states.length || cities.length || employmentTypes.length || onSiteOptions.length);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const filterPanel = (
@@ -313,6 +333,24 @@ export default function JobListPage() {
         selected={cities}
         onToggle={v => { setCities(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(1); }}
       />
+      {allEmploymentTypes.length > 1 && (
+        <FilterSection
+          title="Employment Type"
+          options={allEmploymentTypes}
+          counts={filterCounts.employmentTypes}
+          selected={employmentTypes}
+          onToggle={v => { setEmploymentTypes(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(1); }}
+        />
+      )}
+      {allOnSiteOptions.length > 1 && (
+        <FilterSection
+          title="Remote Status"
+          options={allOnSiteOptions}
+          counts={filterCounts.onSiteOptions}
+          selected={onSiteOptions}
+          onToggle={v => { setOnSiteOptions(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]); setPage(1); }}
+        />
+      )}
 
       {hasActiveFilters && (
         <button

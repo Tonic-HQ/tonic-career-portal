@@ -164,6 +164,7 @@ Features that go beyond Premier's specific requests — platform-level capabilit
 - [ ] **Share to LinkedIn** button on job detail (LinkedIn product already enabled)
 - [ ] **Indeed XML feed customization** — per-client field selection, category filters
 - [ ] **A/B testing** — compare apply rates across different layouts/colors
+- [ ] **Candidate duplicate detection** — before creating a new candidate, check if name + email already exist in Bullhorn. If match found, create the JobSubmission against the existing candidate instead of creating a duplicate. Public API handles this automatically (`candidateAlreadyExisted: true` in response). REST API path needs explicit search-before-create logic (`GET /search/Candidate?query=email:"x" AND firstName:"y"`).
 - [ ] **Resume upload** (optional) — for clients who want traditional apply alongside quick apply
 - [ ] **Custom domain mapping** — CNAME portal.clientdomain.com to our infrastructure
 - [ ] **Static export pipeline** — generate standalone HTML/JS/CSS bundle for $199 tier clients
