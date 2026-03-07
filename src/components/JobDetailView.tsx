@@ -120,7 +120,7 @@ export default function JobDetailView({ job }: Props) {
   return (
     <>
       {/* Main content — add bottom padding on mobile for sticky footer */}
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-24 sm:pb-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 sm:pb-8">
         {/* Back navigation */}
         <button
           onClick={handleBack}
@@ -249,25 +249,6 @@ export default function JobDetailView({ job }: Props) {
                 className="text-gray-600 leading-[1.8] [&>p]:mb-4 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ul]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-gray-600 [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-7 [&>h3]:mb-3 [&>h3]:text-base [&>strong]:text-gray-800 [&>strong]:font-semibold"
                 dangerouslySetInnerHTML={{ __html: config.jobDescriptionFooter }}
               />
-            </div>
-          )}
-
-          {job.benefits && (
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-[0.1em] flex items-center gap-2">
-                <span className="w-1 h-3.5 rounded-full inline-block" style={{ backgroundColor: 'var(--color-accent)' }} />
-                Benefits &amp; Perks
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {job.benefits.split(',').map((benefit, i) => (
-                  <span
-                    key={benefit.trim()}
-                    className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border ${BENEFIT_COLORS[i % BENEFIT_COLORS.length]}`}
-                  >
-                    {benefit.trim()}
-                  </span>
-                ))}
-              </div>
             </div>
           )}
 
